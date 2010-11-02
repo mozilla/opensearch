@@ -1,0 +1,4 @@
+content   opensearch   content/
+locale    opensearch   en-US         locale/en-US/
+skin      opensearch   classic/1.0   skin/
+overlay   chrome://messenger/content/messenger.xul  chrome://opensearch/content/opensearch.xul
