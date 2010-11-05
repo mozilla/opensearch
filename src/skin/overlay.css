@@ -21,3 +21,56 @@
 tab[type="contentTab"].google .tab-icon-image {
   list-style-image: url('http://www.google.com/favicon.ico');
 }
+
+label.url {
+  font-size: 120%;
+  color: grey;
+}
+
+.mininav.hidden {
+  display:none;
+}
+
+hbox.mininav {
+  background: #999;
+  color: white;
+  border-bottom: 1px solid grey;
+  -moz-box-align: baseline;
+  color: white;
+
+}
+
+.mininav .url {
+  -moz-user-select: all;
+  border: 1px inset #444;
+  padding: 3px;
+  background: #ccc;
+  color: #444;
+}
+
+.mininav button {
+  -moz-appearance: none;
+  border: 1px solid grey;
+  border-radius: 3px;
+  padding: 2px;
+  font-weight: bold;
+  background: #aaa;
+}
+
+.mininav button:hover {
+  background: #bbb;
+}
+.mininav button:hover label {
+  text-decoration: underline;
+}
+
+.mininav button[disabled='true'] {
+  color: #333;
+  font-weight: 100;
+}
+.mininav button[disabled="true"]:hover label {
+  text-decoration: none;
+}
+.mininav button[disabled="true"]:hover {
+  background: #aaa;
+}

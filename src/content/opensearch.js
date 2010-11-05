@@ -143,35 +143,84 @@ OpenSearch.prototype = {
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
       let hbox = document.createElement('hbox');
+      hbox.setAttribute('class', 'mininav hidden');
+      let url = document.createElement('label');
+      url.value = "url goes here";
+      url.setAttribute('class', 'url');
+      url.setAttribute('flex', '1');
+      url.setAttribute('crop', 'center');
       let back = document.createElement('button');
       back.setAttribute('label', 'back');
-      var func = function () {
-        try {
-          document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
-        } catch (e) {
-          logException(e);
-        }
+      back.setAttribute('class', 'back');
+      var backFunc = function () {
+        document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
       };
-      back.addEventListener("click", func, true);
+      back.addEventListener("click", backFunc, true);
+      let forward = document.createElement('button');
+      forward.setAttribute('label', 'forward');
+      forward.setAttribute('class', 'forward');
+      var forwardFunc = function () {
+        document.getElementById('tabmail').getBrowserForSelectedTab().goForward();
+      };
+      forward.addEventListener("click", forwardFunc, true);
       hbox.appendChild(back);
+      hbox.appendChild(forward);
+      hbox.appendChild(url);
       outerbox = browser.parentNode;
       outerbox.insertBefore(hbox, browser);
+      
+      // browser navigation (front/back) does not cause onDOMContentLoaded, so we have to use nsIWebProgressListener
+      browser.addProgressListener(this);
     } catch (e) {
       logException(e);
     }
   },
   
-  onDOMContentLoaded: function(e) {
+  QueryInterface: function(aIID)  
+  {  
+   if (aIID.equals(Components.interfaces.nsIWebProgressListener) ||  
+       aIID.equals(Components.interfaces.nsISupportsWeakReference) ||  
+       aIID.equals(Components.interfaces.nsISupports))  
+     return this;  
+   throw Components.results.NS_NOINTERFACE;  
+  },
+  
+  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},  
+  onLocationChange: function(aProgress, aRequest, aURI)  
+  {
+    this.updateNavButtons(aURI.spec);
+  },
+  
+  updateNavButtons: function(uristring) {
+      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      let outerbox = browser.parentNode;
+      let hbox = outerbox.firstChild;
+      let backButton = hbox.getElementsByClassName('back')[0];
+      backButton.disabled = ! browser.canGoBack;
+      let forwardButton = hbox.getElementsByClassName('forward')[0];
+      forwardButton.disabled = ! browser.canGoForward;
+      let url = hbox.getElementsByClassName('url')[0];
+      url.setAttribute("value", uristring);
+  },
+  
+  // For definitions of the remaining functions see related documentation  
+  onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
+  onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
+  onSecurityChange: function(aWebProgress, aRequest, aState) { },
+  
+  onDOMContentLoaded: function() {
     try {
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-      outerbox = browser.parentNode;
-      hbox = outerbox.firstChild;
+      opensearch.updateNavButtons(browser.contentDocument.location);
+      let outerbox = browser.parentNode;
+      let hbox = outerbox.firstChild;
+      hbox.setAttribute('class', 'mininav'); // remove 'hidden';
       // XXX something's not right when we go from a short page through links to a longer page
       outerbox.height = browser.contentDocument.body.scrollHeight  + hbox.clientHeight + 'px';
       browser.height = browser.contentDocument.body.scrollHeight +hbox.clientHeight + 'px';
       browser.minHeight = browser.contentDocument.body.scrollHeight +hbox.clientHeight + 'px';
       outerbox.style.overflowY = "auto";
-      outerbox.scrollTop = hbox.clientHeight;
+      outerbox.scrollTop = hbox.clientHeight + 1;  // for border - XXX fix.
       browser.style.overflow = "hidden";
     } catch (e) {
       logException(e);
