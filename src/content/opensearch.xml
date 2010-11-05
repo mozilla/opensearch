@@ -27,6 +27,7 @@
         <body>
           <![CDATA[
             this._explanation.value = "Search the web for: " + this.row.term;
+          ]]>
         </body>
       </method>
     </implementation>
