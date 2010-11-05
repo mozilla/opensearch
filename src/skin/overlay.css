@@ -16,3 +16,8 @@
   margin-top: 2px;
   margin-bottom: 2px;
 }
+
+
+tab[type="contentTab"].google .tab-icon-image {
+  list-style-image: url('http://www.google.com/favicon.ico');
+}

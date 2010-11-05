@@ -2,7 +2,6 @@
 
 - look in mxr for search UI widget
 - understand opensearch model
-- add toolbar item after gloda search on add-on install
 - figure out how to limit to links inside of the search engine
   (e.g. what to do about signing in to google?)
 - propose a patch to specialTabs or tabmail that allows tabs to specify
@@ -131,28 +130,52 @@ OpenSearch.prototype = {
   },
 
   doSearch: function(searchterm) {
-    let options = {background : false ,
-                   contentPage : "http://www.google.com/search?q=" + encodeURI(searchterm),
-                   clickHandler: "opensearch.siteClickHandler(event)"
-                  };
+    try {
+      let options = {background : false ,
+                     contentPage : "http://www.google.com/search?q=" + encodeURI(searchterm),
+                     clickHandler: "opensearch.siteClickHandler(event)"
+                    };
       var tabmail = document.getElementById('tabmail');
       var tabthing = tabmail.openTab("contentTab", options);
-      this.tabthing = tabthing;
-      logElement(tabthing);
-      try {
-        var context = tabmail._getTabContextForTabbyThing(tabthing)
-        var tab = context[2];
-        var middleBox = document.getAnonymousElementByAttribute(tab, "class", "tab-image-middle box-inherit");
-        logElement(middleBox);
-        var backButton = document.createElement('button');
-        backButton.setAttribute('label', '<');
-        backButton.setAttribute('onclick', 'opensearch.goBack()');
-        backButton.setAttribute('class', 'inline-button');
-        middleBox.appendChild(backButton);
-      } catch (e) {
-        logException(e);
-      }
-      
+      var context = tabmail._getTabContextForTabbyThing(tabthing)
+      var tab = context[2];
+      tab.setAttribute('class', tab.getAttribute('class') + ' google');
+      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
+      let hbox = document.createElement('hbox');
+      let back = document.createElement('button');
+      back.setAttribute('label', 'back');
+      var func = function () {
+        try {
+          document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
+        } catch (e) {
+          logException(e);
+        }
+      };
+      back.addEventListener("click", func, true);
+      hbox.appendChild(back);
+      outerbox = browser.parentNode;
+      outerbox.insertBefore(hbox, browser);
+    } catch (e) {
+      logException(e);
+    }
+  },
+  
+  onDOMContentLoaded: function(e) {
+    try {
+      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      outerbox = browser.parentNode;
+      hbox = outerbox.firstChild;
+      // XXX something's not right when we go from a short page through links to a longer page
+      outerbox.height = browser.contentDocument.body.scrollHeight  + hbox.clientHeight + 'px';
+      browser.height = browser.contentDocument.body.scrollHeight +hbox.clientHeight + 'px';
+      browser.minHeight = browser.contentDocument.body.scrollHeight +hbox.clientHeight + 'px';
+      outerbox.style.overflowY = "auto";
+      outerbox.scrollTop = hbox.clientHeight;
+      browser.style.overflow = "hidden";
+    } catch (e) {
+      logException(e);
+    }
   },
   
   goBack: function() {
