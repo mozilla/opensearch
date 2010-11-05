@@ -44,7 +44,24 @@
 
   <!--We want to enable browser history, and at least the Go menu-->
   <browser id="dummycontentbrowser" disablehistory="false"/>
-  
+  <tabmail id="tabmail">
+    <vbox id="siteTab" collapsed="true">
+      <vbox flex="1">
+        <notificationbox flex="1">
+          <hbox class="mininav hidden">
+            <button class="back" label="&#0171; back"/>
+            <button class="forward" label="forward &#187;"/>
+            <textbox readonly="true" class="url" flex="1" crop="center"/>
+          </hbox>
+          <browser id="dummycontentbrowser" type="content-targetable" flex="1"
+                   disablehistory="true" autocompletepopup="PopupAutoComplete"
+                   context="mailContext"/>
+        </notificationbox>
+        <findbar browserid="dummycontentbrowser"/>
+      </vbox>
+    </vbox>
+  </tabmail>
+
   <!--<toolbar id="mail-bar3">-->
   <!--  <toolbaritem id="web-search" insertafter="button-getmsg"-->
   <!--               title="Search Web"-->

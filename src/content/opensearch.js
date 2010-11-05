@@ -115,8 +115,267 @@ OpenSearch.prototype = {
       observerSvc.addObserver(opensearch, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
       this.glodaCompleter.completers.push(new WebSearchCompleter());
+    let tabmail = document.getElementById('tabmail');
+
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                          .getService(Components.interfaces.nsIPrefBranch);
+
+    tabmail.registerTabType(this.siteTabType);
     } catch (e) {
       logException(e);
+    }
+  },
+
+  /**
+   * A tab to show content pages.
+   */
+  siteTabType: {
+    name: "siteTab",
+    perTabPanel: "vbox",
+    lastBrowserId: 0,
+    get loadingTabString() {
+      delete this.loadingTabString;
+      return this.loadingTabString = document.getElementById("bundle_messenger")
+                                             .getString("loadingTab");
+    },
+
+    modes: {
+      siteTab: {
+        type: "siteTab",
+        maxTabs: 10
+      }
+    },
+    shouldSwitchTo: function onSwitchTo({contentPage: aContentPage}) {
+      let tabmail = document.getElementById("tabmail");
+      let tabInfo = tabmail.tabInfo;
+
+      // Remove any anchors - especially for the about: pages, we just want
+      // to re-use the same tab.
+      let regEx = new RegExp("#.*");
+
+      let contentUrl = aContentPage.replace(regEx, "");
+
+      for (let selectedIndex = 0; selectedIndex < tabInfo.length;
+           ++selectedIndex) {
+        if (tabInfo[selectedIndex].mode.name == this.name &&
+            tabInfo[selectedIndex].browser.currentURI.spec
+                                  .replace(regEx, "") == contentUrl) {
+          // Ensure we go to the correct location on the page.
+          tabInfo[selectedIndex].browser
+                                .setAttribute("src", aContentPage);
+          return selectedIndex;
+        }
+      }
+      return -1;
+    },
+    openTab: function onTabOpened(aTab, aArgs) {
+      if (!"contentPage" in aArgs)
+        throw("contentPage must be specified");
+
+      // First clone the page and set up the basics.
+      let clone = document.getElementById("siteTab").firstChild.cloneNode(true);
+
+      clone.setAttribute("id", "siteTab" + this.lastBrowserId);
+      clone.setAttribute("collapsed", false);
+
+      aTab.panel.appendChild(clone);
+
+      // Start setting up the browser.
+      aTab.browser = aTab.panel.getElementsByTagName("browser")[0];
+
+      // As we're opening this tab, showTab may not get called, so set
+      // the type according to if we're opening in background or not.
+      let background = ("background" in aArgs) && aArgs.background;
+      aTab.browser.setAttribute("type", background ? "content-targetable" :
+                                                     "content-primary");
+
+      aTab.browser.setAttribute("id", "siteTabBrowser" + this.lastBrowserId);
+
+      aTab.browser.setAttribute("onclick",
+                                "clickHandler" in aArgs && aArgs.clickHandler ?
+                                aArgs.clickHandler :
+                                "specialTabs.defaultClickHandler(event);");
+
+      // Now initialise the find bar.
+      aTab.findbar = aTab.panel.getElementsByTagName("findbar")[0];
+      aTab.findbar.setAttribute("browserid",
+                                "siteTabBrowser" + this.lastBrowserId);
+
+      // Default to reload being disabled.
+      aTab.reloadEnabled = false;
+
+      // Now set up the listeners.
+      this._setUpTitleListener(aTab);
+      this._setUpCloseWindowListener(aTab);
+
+      // Create a filter and hook it up to our browser
+      let filter = Components.classes["@mozilla.org/appshell/component/browser-status-filter;1"]
+                             .createInstance(Components.interfaces.nsIWebProgress);
+      aTab.filter = filter;
+      aTab.browser.webProgress.addProgressListener(filter, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+
+      // Wire up a progress listener to the filter for this browser
+      aTab.progressListener = new tabProgressListener(aTab, false);
+
+      filter.addProgressListener(aTab.progressListener, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+
+      // Now start loading the content.
+      aTab.title = this.loadingTabString;
+
+      aTab.browser.loadURI(aArgs.contentPage);
+
+      this.lastBrowserId++;
+    },
+    closeTab: function onTabClosed(aTab) {
+      aTab.browser.removeEventListener("DOMTitleChanged",
+                                       aTab.titleListener, true);
+      aTab.browser.removeEventListener("DOMWindowClose",
+                                       aTab.closeListener, true);
+      aTab.browser.webProgress.removeProgressListener(aTab.filter);
+      aTab.filter.removeProgressListener(aTab.progressListener);
+      aTab.browser.destroy();
+    },
+    saveTabState: function onSaveTabState(aTab) {
+      aTab.browser.setAttribute("type", "content-targetable");
+    },
+    showTab: function onShowTab(aTab) {
+      aTab.browser.setAttribute("type", "content-primary");
+    },
+    persistTab: function onPersistTab(aTab) {
+      if (aTab.browser.currentURI.spec == "about:blank")
+        return null;
+
+      let onClick = aTab.browser.getAttribute("onclick");
+
+      return {
+        tabURI: aTab.browser.currentURI.spec,
+        clickHandler: onClick ? onClick : null
+      };
+    },
+    restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
+      aTabmail.openTab("siteTab", { contentPage: aPersistedState.tabURI,
+                                       clickHandler: aPersistedState.clickHandler,
+                                       background: true } );
+    },
+    supportsCommand: function supportsCommand(aCommand, aTab) {
+      switch (aCommand) {
+        case "cmd_fullZoomReduce":
+        case "cmd_fullZoomEnlarge":
+        case "cmd_fullZoomReset":
+        case "cmd_fullZoomToggle":
+        case "cmd_find":
+        case "cmd_findAgain":
+        case "cmd_findPrevious":
+        case "cmd_printSetup":
+        case "cmd_print":
+        case "button_print":
+        case "cmd_stop":
+        case "cmd_reload":
+        // XXX print preview not currently supported - bug 497994 to implement.
+        // case "cmd_printpreview":
+          return true;
+        default:
+          return false;
+      }
+    },
+    isCommandEnabled: function isCommandEnabled(aCommand, aTab) {
+      switch (aCommand) {
+        case "cmd_fullZoomReduce":
+        case "cmd_fullZoomEnlarge":
+        case "cmd_fullZoomReset":
+        case "cmd_fullZoomToggle":
+        case "cmd_find":
+        case "cmd_findAgain":
+        case "cmd_findPrevious":
+        case "cmd_printSetup":
+        case "cmd_print":
+        case "button_print":
+        // XXX print preview not currently supported - bug 497994 to implement.
+        // case "cmd_printpreview":
+          return true;
+        case "cmd_reload":
+          return aTab.reloadEnabled;
+        case "cmd_stop":
+          return aTab.busy;
+        default:
+          return false;
+      }
+    },
+    doCommand: function isCommandEnabled(aCommand, aTab) {
+      switch (aCommand) {
+        case "cmd_fullZoomReduce":
+          ZoomManager.reduce();
+          break;
+        case "cmd_fullZoomEnlarge":
+          ZoomManager.enlarge();
+          break;
+        case "cmd_fullZoomReset":
+          ZoomManager.reset();
+          break;
+        case "cmd_fullZoomToggle":
+          ZoomManager.toggleZoom();
+          break;
+        case "cmd_find":
+          aTab.findbar.onFindCommand();
+          break;
+        case "cmd_findAgain":
+          aTab.findbar.onFindAgainCommand(false);
+          break;
+        case "cmd_findPrevious":
+          aTab.findbar.onFindAgainCommand(true);
+          break;
+        case "cmd_printSetup":
+          PrintUtils.showPageSetup();
+          break;
+        case "cmd_print":
+          PrintUtils.print();
+          break;
+        // XXX print preview not currently supported - bug 497994 to implement.
+        //case "cmd_printpreview":
+        //  PrintUtils.printPreview();
+        //  break;
+        case "cmd_stop":
+          aTab.browser.stop();
+          break;
+        case "cmd_reload":
+          aTab.browser.reload();
+          break;
+      }
+    },
+    getBrowser: function getBrowser(aTab) {
+      return aTab.browser;
+    },
+    // Internal function used to set up the title listener on a content tab.
+    _setUpTitleListener: function setUpTitleListener(aTab) {
+      function onDOMTitleChanged(aEvent) {
+        aTab.title = aTab.browser.contentTitle;
+        document.getElementById("tabmail").setTabTitle(aTab);
+      }
+      // Save the function we'll use as listener so we can remove it later.
+      aTab.titleListener = onDOMTitleChanged;
+      // Add the listener.
+      aTab.browser.addEventListener("DOMTitleChanged",
+                                    aTab.titleListener, true);
+    },
+    /**
+     * Internal function used to set up the close window listener on a content
+     * tab.
+     */
+    _setUpCloseWindowListener: function setUpCloseWindowListener(aTab) {
+      function onDOMWindowClose(aEvent) {
+        if (!aEvent.isTrusted)
+          return;
+
+        // Redirect any window.close events to closing the tab. As a 3-pane tab
+        // must be open, we don't need to worry about being the last tab open.
+        document.getElementById("tabmail").closeTab(aTab);
+        aEvent.preventDefault();
+      }
+      // Save the function we'll use as listener so we can remove it later.
+      aTab.closeListener = onDOMWindowClose;
+      // Add the listener.
+      aTab.browser.addEventListener("DOMWindowClose",
+                                    aTab.closeListener, true);
     }
   },
 
@@ -146,40 +405,36 @@ OpenSearch.prototype = {
                      clickHandler: "opensearch.siteClickHandler(event)"
                     };
       var tabmail = document.getElementById('tabmail');
-      var tabthing = tabmail.openTab("contentTab", options);
+      var tabthing = tabmail.openTab("siteTab", options);
       var context = tabmail._getTabContextForTabbyThing(tabthing)
       var tab = context[2];
       tab.setAttribute('class', tab.getAttribute('class') + ' google');
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
-      let hbox = document.createElement('hbox');
-      hbox.setAttribute('class', 'mininav hidden');
-      let url = document.createElement('textbox');
-      url.readonly = true;
-      url.setAttribute('readonly', 'true');
-      url.setAttribute('class', 'url');
-      url.setAttribute('flex', '1');
-      url.setAttribute('crop', 'center');
-      let back = document.createElement('button');
-      back.setAttribute('label', '\u00AB back');
-      back.setAttribute('class', 'back');
+      //let hbox = document.createElement('hbox');
+      //hbox.setAttribute('class', 'mininav hidden');
+      //let url = document.createElement('textbox');
+      //url.readonly = true;
+      //url.setAttribute('readonly', 'true');
+      //url.setAttribute('class', 'url');
+      //url.setAttribute('flex', '1');
+      //url.setAttribute('crop', 'center');
+      //let back = document.createElement('button');
+      //back.setAttribute('label', '\u00AB back');
+      //back.setAttribute('class', 'back');
+      let outerbox = browser.parentNode;
+      let backButton = outerbox.getElementsByClassName('back')[0];
       var backFunc = function (e) {
         document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
       };
-      back.addEventListener("click", backFunc, true);
-      let forward = document.createElement('button');
-      forward.setAttribute('label', 'forward \u00BB');
-      forward.setAttribute('class', 'forward');
+      backButton.addEventListener("click", backFunc, true);
+      let forwardButton = outerbox.getElementsByClassName('forward')[0];
+      forwardButton.setAttribute("disabled", ! browser.canGoForward);
       var forwardFunc = function () {
         document.getElementById('tabmail').getBrowserForSelectedTab().goForward();
       };
-      forward.addEventListener("click", forwardFunc, true);
-      hbox.appendChild(back);
-      hbox.appendChild(forward);
-      hbox.appendChild(url);
-      outerbox = browser.parentNode;
-      outerbox.insertBefore(hbox, browser);
-      
+      forwardButton.addEventListener("click", forwardFunc, true);
+
       // browser navigation (front/back) does not cause onDOMContentLoaded, so we have to use nsIWebProgressListener
       browser.addProgressListener(this);
     } catch (e) {
