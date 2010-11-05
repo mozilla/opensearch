@@ -161,14 +161,14 @@ OpenSearch.prototype = {
       url.setAttribute('flex', '1');
       url.setAttribute('crop', 'center');
       let back = document.createElement('button');
-      back.setAttribute('label', 'back');
+      back.setAttribute('label', '\u00AB back');
       back.setAttribute('class', 'back');
       var backFunc = function (e) {
         document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
       };
       back.addEventListener("click", backFunc, true);
       let forward = document.createElement('button');
-      forward.setAttribute('label', 'forward');
+      forward.setAttribute('label', 'forward \u00BB');
       forward.setAttribute('class', 'forward');
       var forwardFunc = function () {
         document.getElementById('tabmail').getBrowserForSelectedTab().goForward();

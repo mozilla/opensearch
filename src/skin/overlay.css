@@ -32,8 +32,7 @@ tab[type="contentTab"].google .tab-icon-image {
 }
 
 hbox.mininav {
-  background: #999;
-  color: white;
+  background: #ddd;
   border-bottom: 1px solid grey;
   -moz-box-align: baseline;
   color: white;
@@ -49,27 +48,46 @@ hbox.mininav {
 
 .mininav button {
   -moz-appearance: none;
-  border: 1px solid grey;
-  border-radius: 3px;
-  padding: 2px;
+  -moz-box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+  background-image: -moz-linear-gradient(center top , #EEEEEE 0%, #EEEEEE 50%, #E1E1E1 50%, #E1E1E1 100%);
+  border-color: #AAAAAA #AAAAAA #888888;
+  border-style: solid;
+  border-width: 1px;
+  color: #222222;
+  cursor: pointer;
   font-weight: bold;
-  background: #aaa;
+  font-size: larger;
+  padding: 2px 4px;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.back {
+  -moz-border-radius: 12px 3px 3px 12px;
+}
+
+.forward {
+  -moz-border-radius: 3px 12px 12px 3px;
 }
 
 .mininav button:hover {
-  background: #bbb;
+  background-image: -moz-linear-gradient(center top , #fafafa 0%, #fafafa 50%, #eee 50%, #eee 100%);
 }
-.mininav button:hover label {
-  text-decoration: underline;
+
+.mininav button:active {
+  background-image: -moz-linear-gradient(center top , #ddd 0%, #ddd 100%);
 }
 
 .mininav button[disabled='true'] {
-  color: #333;
-  font-weight: 100;
+  color: #666;
+  background-image: -moz-linear-gradient(center top , #ddd 0%, #ddd 100%);
+  font-weight: normal;
+  cursor: default;
 }
 .mininav button[disabled="true"]:hover label {
   text-decoration: none;
 }
 .mininav button[disabled="true"]:hover {
-  background: #aaa;
 }
