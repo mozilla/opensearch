@@ -1,9 +1,13 @@
 /* TODO:
 
-- look in mxr for search UI widget
-- understand opensearch model
-- figure out how to limit to links inside of the search engine
-  (e.g. what to do about signing in to google?)
+- figure out where we want to pick opensearch engines
+- do we want multiple entries in the autocomplete?  (Search Web / Search wikipedia / etc?)
+- for each search engine, scope the links to stay-in-tb if they're
+  a) same domain
+  b) for some, include a few extra domains like login, etc.
+- move xul mods to an overlay somehow
+- bug: session restore restores them as regular contentTabs -- we may need to create
+  a new kind of tab ("siteTab"?)
 - propose a patch to specialTabs or tabmail that allows tabs to specify
   favicons and or favicon-updating functions
 
@@ -99,25 +103,31 @@ OpenSearch.prototype = {
 
   onLoad: function(evt) {
     try {
-     var prefBranch =
+      var prefBranch =
           Components.classes['@mozilla.org/preferences-service;1'].
           getService(Components.interfaces.nsIPrefBranch2);
       this.glodaCompleter =
         Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"]
                   .getService()
                   .wrappedJSObject;
-        var observerSvc = Components.classes["@mozilla.org/observer-service;1"]
-                          .getService(Components.interfaces.nsIObserverService);
-        observerSvc.addObserver(opensearch, "autocomplete-did-enter-text", false);
-        this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
-        this.glodaCompleter.completers.push(new WebSearchCompleter());
-      } catch (e) {
-        logException(e);
-      }
+      var observerSvc = Components.classes["@mozilla.org/observer-service;1"]
+                        .getService(Components.interfaces.nsIObserverService);
+      observerSvc.addObserver(opensearch, "autocomplete-did-enter-text", false);
+      this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
+      this.glodaCompleter.completers.push(new WebSearchCompleter());
+    } catch (e) {
+      logException(e);
+    }
   },
 
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == 'autocomplete-did-enter-text') {
+      let selectedIndex = aSubject.popup.selectedIndex;
+      let curResult = this.glodaCompleter.curResult;
+      if (! curResult)
+        return; // autocomplete didn't even finish.
+      let row = curResult.getObjectAt(selectedIndex);
+      if (row.typeForStyle != 'websearch') return;
       opensearch.doSearch(aSubject.state.string);
     }
   },
@@ -144,15 +154,16 @@ OpenSearch.prototype = {
       browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
       let hbox = document.createElement('hbox');
       hbox.setAttribute('class', 'mininav hidden');
-      let url = document.createElement('label');
-      url.value = "url goes here";
+      let url = document.createElement('textbox');
+      url.readonly = true;
+      url.setAttribute('readonly', 'true');
       url.setAttribute('class', 'url');
       url.setAttribute('flex', '1');
       url.setAttribute('crop', 'center');
       let back = document.createElement('button');
       back.setAttribute('label', 'back');
       back.setAttribute('class', 'back');
-      var backFunc = function () {
+      var backFunc = function (e) {
         document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
       };
       back.addEventListener("click", backFunc, true);
@@ -196,9 +207,9 @@ OpenSearch.prototype = {
       let outerbox = browser.parentNode;
       let hbox = outerbox.firstChild;
       let backButton = hbox.getElementsByClassName('back')[0];
-      backButton.disabled = ! browser.canGoBack;
+      backButton.setAttribute("disabled", ! browser.canGoBack);
       let forwardButton = hbox.getElementsByClassName('forward')[0];
-      forwardButton.disabled = ! browser.canGoForward;
+      forwardButton.setAttribute("disabled", ! browser.canGoForward);
       let url = hbox.getElementsByClassName('url')[0];
       url.setAttribute("value", uristring);
   },
