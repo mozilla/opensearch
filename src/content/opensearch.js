@@ -5,6 +5,8 @@
 - add toolbar item after gloda search on add-on install
 - figure out how to limit to links inside of the search engine
   (e.g. what to do about signing in to google?)
+- propose a patch to specialTabs or tabmail that allows tabs to specify
+  favicons and or favicon-updating functions
 
 */
 
@@ -47,8 +49,78 @@
 Components.utils.import("resource:///modules/errUtils.js");
 var EXTPREFNAME = "extension.opensearch.data";
 
-var opensearch = {
+
+function ResultRowSingle(term) {
+  this.term = term;
+  this.typeForStyle = "websearch";
+  this.nounDef = null;
+}
+
+ResultRowSingle.prototype = {
+  multi: false,
+  fullText: false,
+};
+
+function WebSearchCompleter() {
+}
+
+WebSearchCompleter.prototype = {
+  complete: function WebSearchCompleter_complete(aResult, aString) {
+    if (aString.length < 3) {
+      // In CJK, first name or last name is sometime used as 1 character only.
+      // So we allow autocompleted search even if 1 character.
+      //
+      // [U+3041 - U+9FFF ... Full-width Katakana, Hiragana
+      //                      and CJK Ideograph
+      // [U+AC00 - U+D7FF ... Hangul
+      // [U+F900 - U+FFDC ... CJK compatibility ideograph
+      if (!aString.match(/[\u3041-\u9fff\uac00-\ud7ff\uf900-\uffdc]/))
+        return false;
+    }
+
+    let rows = [new ResultRowSingle(aString)];
+    aResult.addRows(rows);
+    return true;
+  },
+  onItemsAdded: function(aItems, aCollection) {
+  },
+  onItemsModified: function(aItems, aCollection) {
+  },
+  onItemsRemoved: function(aItems, aCollection) {
+  },
+  onQueryCompleted: function(aCollection) {
+  }
+};
+
+
+function OpenSearch() {
+}
+
+OpenSearch.prototype = {
+
   onLoad: function(evt) {
+    try {
+     var prefBranch =
+          Components.classes['@mozilla.org/preferences-service;1'].
+          getService(Components.interfaces.nsIPrefBranch2);
+      this.glodaCompleter =
+        Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"]
+                  .getService()
+                  .wrappedJSObject;
+        var observerSvc = Components.classes["@mozilla.org/observer-service;1"]
+                          .getService(Components.interfaces.nsIObserverService);
+        observerSvc.addObserver(opensearch, "autocomplete-did-enter-text", false);
+        this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
+        this.glodaCompleter.completers.push(new WebSearchCompleter());
+      } catch (e) {
+        logException(e);
+      }
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    if (aTopic == 'autocomplete-did-enter-text') {
+      opensearch.doSearch(aSubject.state.string);
+    }
   },
 
   get _protocolSvc() {
@@ -60,15 +132,36 @@ var opensearch = {
 
   doSearch: function(searchterm) {
     let options = {background : false ,
-                   contentPage : "http://search.yahoo.com/search?p=" + encodeURI(searchterm),
+                   contentPage : "http://www.google.com/search?q=" + encodeURI(searchterm),
                    clickHandler: "opensearch.siteClickHandler(event)"
                   };
-      document.getElementById('tabmail').openTab("contentTab", options);
+      var tabmail = document.getElementById('tabmail');
+      var tabthing = tabmail.openTab("contentTab", options);
+      this.tabthing = tabthing;
+      logElement(tabthing);
+      try {
+        var context = tabmail._getTabContextForTabbyThing(tabthing)
+        var tab = context[2];
+        var middleBox = document.getAnonymousElementByAttribute(tab, "class", "tab-image-middle box-inherit");
+        logElement(middleBox);
+        var backButton = document.createElement('button');
+        backButton.setAttribute('label', '<');
+        backButton.setAttribute('onclick', 'opensearch.goBack()');
+        backButton.setAttribute('class', 'inline-button');
+        middleBox.appendChild(backButton);
+      } catch (e) {
+        logException(e);
+      }
+      
   },
-
+  
   goBack: function() {
-    let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-    browser.goBack();
+    try {
+      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      browser.goBack();
+    } catch (e) {
+      logException(e);
+    }
   },
 
   goForward: function() {
@@ -89,7 +182,7 @@ var opensearch = {
           uri.schemeIs("http") || uri.schemeIs("https")) {
          //if they're still in the search app, keep 'em.
          // XXX: we need a smarter way (both for google and others)
-        if ((uri.host == 'search.yahoo.com') && (uri.path.indexOf('/search') == 0)) {
+        if ((uri.host == 'www.google.com') && (uri.path.indexOf('/search') == 0)) {
           // default will do.
         } else {
           aEvent.preventDefault();
@@ -97,7 +190,10 @@ var opensearch = {
         }
       }
     }
-  }};
+  }
+};
+var opensearch = new OpenSearch();
+
 window.addEventListener("load", function(evt) { opensearch.onLoad(evt); }, false);
 
 

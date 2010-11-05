@@ -36,33 +36,34 @@
   - ***** END LICENSE BLOCK ***** -->
 
 <?xml-stylesheet href="chrome://opensearch/skin/overlay.css" type="text/css"?>
+<?xml-stylesheet href="chrome://opensearch/content/websearch-binding.css" type="text/css"?>
+
 <overlay id="opensearch-overlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-
-  <script type="application/x-javascript" src="opensearch.js"/>
+  <script type="application/x-javascript" src="chrome://opensearch/content/opensearch.js"/>
 
   <!--We want to enable browser history, and at least the Go menu-->
   <browser id="dummycontentbrowser" disablehistory="false"/>
   
-  <toolbarpalette id="MailToolbarPalette">
-    <toolbaritem id="web-search" insertafter="button-getmsg"
-                 title="Search Web"
-                 align="center"
-                 flex="1"
-                 class="chromeclass-toolbar-additional">
-        <textbox id="webSearchInput" 
-                 flex="1"
-                 type="search"
-                 searchbutton="true"
-                 enablehistory="true"
-                 timeout="200"
-                 placeholder="Search web"
-                 emptytext="Search web"
-                 onkeypress="if (event.keyCode == 13) {opensearch.doSearch(event.target.value)} "
-                 >
-        </textbox>
-    </toolbaritem>
-  </toolbarpalette>
+  <!--<toolbar id="mail-bar3">-->
+  <!--  <toolbaritem id="web-search" insertafter="button-getmsg"-->
+  <!--               title="Search Web"-->
+  <!--               align="center"-->
+  <!--               flex="1"-->
+  <!--               class="chromeclass-toolbar-additional">-->
+  <!--      <textbox id="webSearchInput" -->
+  <!--               flex="1"-->
+  <!--               type="search"-->
+  <!--               searchbutton="true"-->
+  <!--               enablehistory="true"-->
+  <!--               timeout="200"-->
+  <!--               placeholder="Search web"-->
+  <!--               emptytext="Search web"-->
+  <!--               onkeypress="if (event.keyCode == 13) {opensearch.doSearch(event.target.value)} "-->
+  <!--               >-->
+  <!--      </textbox>-->
+  <!--  </toolbaritem>-->
+  <!--</toolbar>-->
   <popup id="mailContext">
     <menuitem id="mailContext-browserBack"
               label="Go Back"
