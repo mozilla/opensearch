@@ -49,6 +49,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  * 
  * ***** END LICENSE BLOCK ***** */
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource:///modules/errUtils.js");
 var EXTPREFNAME = "extension.opensearch.data";
 
@@ -97,22 +98,22 @@ WebSearchCompleter.prototype = {
 
 
 function OpenSearch() {
+
+  XPCOMUtils.defineLazyServiceGetter(this, "mPrefs",
+                                     "@mozilla.org/preferences-service;1",
+                                     "nsIPrefBranch2");
+
+  XPCOMUtils.defineLazyServiceGetter(this, "mOS",
+                                     "@mozilla.org/observer-service;1",
+                                     "nsIObserverService");
+
 }
 
 OpenSearch.prototype = {
 
   onLoad: function(evt) {
     try {
-      var prefBranch =
-          Components.classes['@mozilla.org/preferences-service;1'].
-          getService(Components.interfaces.nsIPrefBranch2);
-      this.glodaCompleter =
-        Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"]
-                  .getService()
-                  .wrappedJSObject;
-      var observerSvc = Components.classes["@mozilla.org/observer-service;1"]
-                        .getService(Components.interfaces.nsIObserverService);
-      observerSvc.addObserver(opensearch, "autocomplete-did-enter-text", false);
+      this.mOS.addObserver(opensearch, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
       this.glodaCompleter.completers.push(new WebSearchCompleter());
     } catch (e) {
@@ -186,15 +187,11 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-  
-  QueryInterface: function(aIID)  
-  {  
-   if (aIID.equals(Components.interfaces.nsIWebProgressListener) ||  
-       aIID.equals(Components.interfaces.nsISupportsWeakReference) ||  
-       aIID.equals(Components.interfaces.nsISupports))  
-     return this;  
-   throw Components.results.NS_NOINTERFACE;  
-  },
+  QueryInterface: XPCOMUtils.generateQI([
+        Components.interfaces.nsIWebProgressListener,
+        Components.interfaces.nsISupportsWeakReference,
+        Components.interfaces.nsISupports
+        ]),
   
   onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},  
   onLocationChange: function(aProgress, aRequest, aURI)  
@@ -218,7 +215,7 @@ OpenSearch.prototype = {
   onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
   onSecurityChange: function(aWebProgress, aRequest, aState) { },
-  
+
   onDOMContentLoaded: function() {
     try {
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
@@ -227,9 +224,9 @@ OpenSearch.prototype = {
       let hbox = outerbox.firstChild;
       hbox.setAttribute('class', 'mininav'); // remove 'hidden';
       // XXX something's not right when we go from a short page through links to a longer page
-      outerbox.height = browser.contentDocument.body.scrollHeight  + hbox.clientHeight + 'px';
-      browser.height = browser.contentDocument.body.scrollHeight +hbox.clientHeight + 'px';
-      browser.minHeight = browser.contentDocument.body.scrollHeight +hbox.clientHeight + 'px';
+      outerbox.height = browser.contentDocument.height  + hbox.clientHeight + 'px';
+      browser.height = browser.contentDocument.height +hbox.clientHeight + 'px';
+      browser.minHeight = browser.contentDocument.height +hbox.clientHeight + 'px';
       outerbox.style.overflowY = "auto";
       outerbox.scrollTop = hbox.clientHeight + 1;  // for border - XXX fix.
       browser.style.overflow = "hidden";
