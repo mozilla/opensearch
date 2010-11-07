@@ -18,9 +18,19 @@
 }
 
 
-tab[type="contentTab"].google .tab-icon-image {
+tab[type="siteTab"][engine="google"] .tab-icon-image {
   list-style-image: url('http://www.google.com/favicon.ico');
 }
+tab[type="siteTab"][engine="yahoo"] .tab-icon-image {
+  list-style-image: url('http://www.yahoo.com/favicon.ico');
+}
+tab[type="siteTab"][engine="bing"] .tab-icon-image {
+  list-style-image: url('http://www.bing.com/favicon.ico');
+}
+tab[type="siteTab"][engine="wikipedia"] .tab-icon-image {
+  list-style-image: url('http://www.wikipedia.org/favicon.ico');
+}
+
 
 .url {
   font-size: 120%;

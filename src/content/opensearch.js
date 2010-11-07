@@ -127,7 +127,63 @@ OpenSearch.prototype = {
     }
   },
 
-  /**
+  setSearchEngine: function(event) {
+    try {
+      engine = event.target.value;
+      this.mPrefs.setCharPref('opensearch.engine', engine);
+      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      var tabmail = document.getElementById('tabmail');
+      var context = tabmail._getTabContextForTabbyThing(this.tabthing)
+      var tab = context[2];
+      tab.setAttribute('engine', engine);
+      browser.setAttribute("src", this.getSearchURL(this.searchterm));
+      this.engine = engine;
+    } catch (e) {
+      logException(e);
+    }
+  },
+  
+  set engine(value) {
+    this.mPrefs.setCharPref("opensearch.engine", value);
+  },
+  
+  get engine() {
+    try {
+      return this.mPrefs.getCharPref("opensearch.engine");
+    } catch (e) {
+      return 'google';
+    }
+  },
+  
+  getSearchURL: function(searchterm) {
+    switch (this.engine) {
+      case 'yahoo':
+        return "http://search.yahoo.com/search?p=" + encodeURI(searchterm);
+      case 'google':
+        return "http://www.google.com/search?q=" + encodeURI(searchterm);
+      case 'bing':
+        return "http://www.bing.com/search?q=" + encodeURI(searchterm);
+      case 'wikpedia':
+        return "http://en.wikipedia.org/wiki/Special:Search?search=" + encodeURI(searchterm);
+    }
+    return '';
+  },
+
+  getURLPrefixesForEngine: function() {
+    switch (this.engine) {
+      case 'yahoo':
+        return ['http://search.yahoo.com', 'http://www.yahoo.com'];
+      case 'google':
+        return ['http://www.google.com/search', 'http://google.com/search', 'http://login.google.com'];
+      case 'bing':
+        return ['http://www.bing.com'];
+      case 'wikipedia':
+        return ['http://en.wikipedia.org'];
+    }
+  },
+
+
+/**
    * A tab to show content pages.
    */
   siteTabType: {
@@ -399,30 +455,56 @@ OpenSearch.prototype = {
                 .getService(Components.interfaces.nsIExternalProtocolService);
   },
 
+  updateHeight: function(sync) {
+    try {
+      dump('in updateHeight\n');
+      window.clearTimeout(opensearch.timeout);
+      let f = function () {
+        dump('timedout\n');
+        try {
+          let browser = opensearch.tabthing.browser;
+          let outerbox = browser.parentNode;
+          let hbox = outerbox.firstChild;
+          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
+          outerbox.height = browser.contentDocument.height + hbox.clientHeight + 'px';
+          //browser.height = browser.contentDocument.height +hbox.clientHeight + 'px';
+          //browser.minHeight = browser.contentDocument.height +hbox.clientHeight + 'px';
+          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
+          window.clearTimeout(opensearch.timeout);
+        } catch (e) {
+          logException(e);
+        }
+      }
+      if (sync) {
+        dump('doing it sync\n');
+        f();
+      }
+      else {
+        opensearch.timeout = window.setTimeout(f, 100);
+      }
+    } catch (e) {
+      logException(e);
+    }
+  },
+
   doSearch: function(searchterm) {
     try {
+      this.searchterm = searchterm;
       let options = {background : false ,
-                     contentPage : "http://www.google.com/search?q=" + encodeURI(searchterm),
+                     contentPage : this.getSearchURL(searchterm),
                      clickHandler: "opensearch.siteClickHandler(event)"
                     };
       var tabmail = document.getElementById('tabmail');
       var tabthing = tabmail.openTab("siteTab", options);
+      this.tabthing = tabthing;
       var context = tabmail._getTabContextForTabbyThing(tabthing)
       var tab = context[2];
       tab.setAttribute('class', tab.getAttribute('class') + ' google');
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
-      //let hbox = document.createElement('hbox');
-      //hbox.setAttribute('class', 'mininav hidden');
-      //let url = document.createElement('textbox');
-      //url.readonly = true;
-      //url.setAttribute('readonly', 'true');
-      //url.setAttribute('class', 'url');
-      //url.setAttribute('flex', '1');
-      //url.setAttribute('crop', 'center');
-      //let back = document.createElement('button');
-      //back.setAttribute('label', '\u00AB back');
-      //back.setAttribute('class', 'back');
+      tab.setAttribute('engine', this.engine);
+      let menulist = tabmail.getElementsByClassName("menulist")[0];
+      menulist.setAttribute("value", this.engine);
       let outerbox = browser.parentNode;
       let backButton = outerbox.getElementsByClassName('back')[0];
       var backFunc = function (e) {
@@ -430,7 +512,6 @@ OpenSearch.prototype = {
       };
       backButton.addEventListener("click", backFunc, true);
       let forwardButton = outerbox.getElementsByClassName('forward')[0];
-      forwardButton.setAttribute("disabled", ! browser.canGoForward);
       var forwardFunc = function () {
         document.getElementById('tabmail').getBrowserForSelectedTab().goForward();
       };
@@ -512,14 +593,22 @@ OpenSearch.prototype = {
 
     let href = hRefForClickEvent(aEvent, true);
     if (href) {
+      dump("href = " + href + '\n');
       let uri = makeURI(href);
       if (!this._protocolSvc.isExposedProtocol(uri.scheme) ||
           uri.schemeIs("http") || uri.schemeIs("https")) {
          //if they're still in the search app, keep 'em.
          // XXX: we need a smarter way (both for google and others)
-        if ((uri.host == 'www.google.com') && (uri.path.indexOf('/search') == 0)) {
-          // default will do.
-        } else {
+        domains = this.getURLPrefixesForEngine();
+        var inscope = false;
+        for (var i =0; i < domains.length; i++) {
+          if (uri.spec.indexOf(domains[i]) == 0) {
+            dump('in scope, as ' + domains[i] + ' == ' + uri.host + '\n');
+            inscope = true;
+            break;
+          }
+        }
+        if (! inscope) {
           aEvent.preventDefault();
           openLinkExternally(href);
         }
