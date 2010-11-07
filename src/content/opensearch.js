@@ -116,12 +116,13 @@ OpenSearch.prototype = {
       this.mOS.addObserver(opensearch, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
       this.glodaCompleter.completers.push(new WebSearchCompleter());
-    let tabmail = document.getElementById('tabmail');
-
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                          .getService(Components.interfaces.nsIPrefBranch);
-
-    tabmail.registerTabType(this.siteTabType);
+      this.engine = this.engine; // load from prefs
+      let tabmail = document.getElementById('tabmail');
+  
+      var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                            .getService(Components.interfaces.nsIPrefBranch);
+  
+      tabmail.registerTabType(this.siteTabType);
     } catch (e) {
       logException(e);
     }
@@ -130,6 +131,7 @@ OpenSearch.prototype = {
   setSearchEngine: function(event) {
     try {
       engine = event.target.value;
+      this.engine = event.target.value;
       this.mPrefs.setCharPref('opensearch.engine', engine);
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       var tabmail = document.getElementById('tabmail');
@@ -145,6 +147,18 @@ OpenSearch.prototype = {
   
   set engine(value) {
     this.mPrefs.setCharPref("opensearch.engine", value);
+    if (this.tabthing) {
+      var tabmail = document.getElementById('tabmail');
+      var context = tabmail._getTabContextForTabbyThing(this.tabthing)
+      var tab = context[2];
+      tab.setAttribute('class', tab.getAttribute('class') + ' google');
+      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
+      tab.setAttribute('engine', this.engine);
+      let menulist = tabmail.getElementsByClassName("menulist")[0];
+      menulist.setAttribute("value", this.engine);
+      browser.setAttribute("src", this.getSearchURL(this.searchterm));
+    }
   },
   
   get engine() {
@@ -486,7 +500,7 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-
+  
   doSearch: function(searchterm) {
     try {
       this.searchterm = searchterm;
