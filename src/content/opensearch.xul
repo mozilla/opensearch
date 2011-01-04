@@ -53,7 +53,8 @@
             <button class="forward" label="forward &#187;"/>
             <textbox readonly="true" class="url" flex="1" crop="center"/>
             <!--<button label="Which search engine?" type="menu">-->
-              <menulist class="menulist" oncommand="opensearch.setSearchEngine(event)">
+              <menulist id="engines" class="menulist"
+                        oncommand="opensearch.setSearchEngine(event)">
                 <menupopup>
                   <menuitem type="radio" checked="true" label="Google" image="http://www.google.com/favicon.ico" value="google"/>
                   <menuitem type="radio" label="Yahoo" image="http://www.yahoo.com/favicon.ico" value="yahoo"/>

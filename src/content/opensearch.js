@@ -53,6 +53,9 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource:///modules/errUtils.js");
 var EXTPREFNAME = "extension.opensearch.data";
 
+var searchService = Components.classes["@mozilla.org/browser/search-service;1"]
+                              .getService(Components.interfaces
+                                                    .nsIBrowserSearchService);
 
 function ResultRowSingle(term) {
   this.term = term;
@@ -118,11 +121,28 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers.push(new WebSearchCompleter());
       this.engine = this.engine; // load from prefs
       let tabmail = document.getElementById('tabmail');
-  
+
       var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                             .getService(Components.interfaces.nsIPrefBranch);
-  
+
       tabmail.registerTabType(this.siteTabType);
+
+      // Load our search engines into the service.
+      for each (let provider in ["google", "yahoo", "amazondotcom",
+                                 "answers", "creativecommons", "eBay",
+                                 "bing", "wikipedia"]) {
+        searchService.addEngine(
+            "chrome://opensearch/locale/searchplugins/" + provider + ".xml",
+            Components.interfaces.nsISearchEngine.DATA_XML,
+            "", false);
+      }
+
+      // Load the engines from the service into our menu.
+      let engines = document.getElementById("engines");
+      for each (let engine in searchService.getVisibleEngines()) {
+        let item = engines.appendItem(engine.name);
+        item.setAttribute("image", engine.iconURI.spec);
+      }
     } catch (e) {
       logException(e);
     }
