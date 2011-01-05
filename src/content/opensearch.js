@@ -140,8 +140,12 @@ OpenSearch.prototype = {
       // Load the engines from the service into our menu.
       let engines = document.getElementById("engines");
       for each (let engine in searchService.getVisibleEngines()) {
-        let item = engines.appendItem(engine.name);
+        let item = engines.appendItem(engine.name, engine.name);
         item.setAttribute("image", engine.iconURI.spec);
+        if (this.engine == engine.name)
+          item.setAttribute("checked", "true");
+        else
+          item.removeAttribute("checked");
       }
     } catch (e) {
       logException(e);
@@ -164,7 +168,7 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-  
+
   set engine(value) {
     this.mPrefs.setCharPref("opensearch.engine", value);
     if (this.tabthing) {
@@ -190,29 +194,27 @@ OpenSearch.prototype = {
   },
   
   getSearchURL: function(searchterm) {
-    switch (this.engine) {
-      case 'yahoo':
-        return "http://search.yahoo.com/search?p=" + encodeURI(searchterm);
-      case 'google':
-        return "http://www.google.com/search?q=" + encodeURI(searchterm);
-      case 'bing':
-        return "http://www.bing.com/search?q=" + encodeURI(searchterm);
-      case 'wikpedia':
-        return "http://en.wikipedia.org/wiki/Special:Search?search=" + encodeURI(searchterm);
+    try {
+      var engine = searchService.getEngineByName(this.engine);
+      var submission = engine.getSubmission(searchterm);
+      return submission.uri.spec;
+    } catch (e) {
+      logException(e);
     }
     return '';
   },
 
   getURLPrefixesForEngine: function() {
     switch (this.engine) {
-      case 'yahoo':
+      case 'Yahoo':
         return ['http://search.yahoo.com', 'http://www.yahoo.com'];
-      case 'google':
+      case 'Google':
         return ['http://www.google.com/search', 'http://google.com/search', 'http://login.google.com'];
-      case 'bing':
+      case 'Bing':
         return ['http://www.bing.com'];
-      case 'wikipedia':
+      case 'Wikipedia (en)':
         return ['http://en.wikipedia.org'];
+      // todo: Add Amazon.com, Answers.com, Creative Commons, and eBay.
     }
   },
 

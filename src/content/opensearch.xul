@@ -56,10 +56,6 @@
               <menulist id="engines" class="menulist"
                         oncommand="opensearch.setSearchEngine(event)">
                 <menupopup>
-                  <menuitem type="radio" checked="true" label="Google" image="http://www.google.com/favicon.ico" value="google"/>
-                  <menuitem type="radio" label="Yahoo" image="http://www.yahoo.com/favicon.ico" value="yahoo"/>
-                  <menuitem type="radio" label="Bing" image="http://www.bing.com/favicon.ico" value="bing"/>
-                  <menuitem type="radio" label="Wikipedia" image="http://www.wikipedia.org/favicon.ico" value="wikipedia"/>
                 </menupopup>
               </menulist>
             <!--</button>-->
