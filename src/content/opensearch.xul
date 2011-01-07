@@ -49,9 +49,9 @@
       <vbox flex="1">
         <notificationbox flex="1">
           <hbox class="mininav hidden">
-            <button class="back" label="&#0171; back"/>
-            <button class="forward" label="forward &#187;"/>
-            <textbox readonly="true" class="url" flex="1" crop="center"/>
+            <button class="back" label="&#0171;"/>
+            <button class="forward" label="&#187;"/>
+            <textbox class="q" flex="1" crop="center"/>
             <!--<button label="Which search engine?" type="menu">-->
               <menulist class="menulist" oncommand="opensearch.setSearchEngine(event)">
                 <menupopup>
@@ -62,6 +62,7 @@
                 </menupopup>
               </menulist>
             <!--</button>-->
+            <button class="go" label="Search"/>
           </hbox>
           <browser id="dummycontentbrowser" type="content-targetable" flex="1"
                    disablehistory="true" autocompletepopup="PopupAutoComplete"
