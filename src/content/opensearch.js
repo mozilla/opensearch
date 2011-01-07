@@ -142,10 +142,13 @@ OpenSearch.prototype = {
       for each (let engine in searchService.getVisibleEngines()) {
         let item = engines.appendItem(engine.name, engine.name);
         item.setAttribute("image", engine.iconURI.spec);
+        item.setAttribute("type", "radio");
         if (this.engine == engine.name)
           item.setAttribute("checked", "true");
         else
           item.removeAttribute("checked");
+        dump(engine.name+" == "+this.engine+": "+
+             item.hasAttribute("checked")+"\n");
       }
     } catch (e) {
       logException(e);
@@ -270,6 +273,23 @@ OpenSearch.prototype = {
 
       clone.setAttribute("id", "siteTab" + this.lastBrowserId);
       clone.setAttribute("collapsed", false);
+
+      dump("\n\n\nXXXXX\n");
+      try {
+      let engines = clone.getElementsByTagName("menulist")[0];
+      dump(engines+"\n");
+      dump(engines.itemCount+"\n  .");
+      dump([i for (i in engines)].join("\n  ."));
+      for (var i=0; i<engines.itemCount; i++) {
+        let item = engines.getItemAt(i);
+        dump(item.label+" == "+this.engine+": "+
+             item.hasAttribute("checked")+"\n");
+      }
+      } catch (e) {
+        dump("Got exception "+e+"\n");
+        logException(e);
+      }
+
 
       aTab.panel.appendChild(clone);
 
