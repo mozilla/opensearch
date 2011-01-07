@@ -88,11 +88,13 @@ hbox.mininav {
 .mininav button[disabled="true"]:hover {
   background-image: none;
   border-color: transparent;
+  -moz-box-shadow: none;
 }
 
 .mininav button:active {
   background-image: -moz-linear-gradient(center top , #7c7c7c 0%, #919191 100%);
   border-color: #767676;
+  -moz-box-shadow: none;
 }
 
 .mininav button[disabled="true"]:hover label {
@@ -110,6 +112,11 @@ hbox.mininav {
 .mininav .menulist {
   -moz-appearance: none;
   cursor: pointer;
+}
+
+.mininav .menulist .menulist-dropmarker {
+  -moz-appearance: menulist-button;
+  display: -moz-box;
 }
 
 .mininav .go {
