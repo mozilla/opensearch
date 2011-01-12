@@ -588,7 +588,7 @@ OpenSearch.prototype = {
   onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},  
   onLocationChange: function(aProgress, aRequest, aURI)  
   {
-    this.updateNavButtons(aURI.spec);
+    this.updateNavButtons();
   },
   
   updateNavButtons: function(uristring) {
@@ -599,8 +599,8 @@ OpenSearch.prototype = {
       backButton.setAttribute("disabled", ! browser.canGoBack);
       let forwardButton = hbox.getElementsByClassName('forward')[0];
       forwardButton.setAttribute("disabled", ! browser.canGoForward);
-      let url = hbox.getElementsByClassName('url')[0];
-      url.setAttribute("value", uristring);
+      let q = hbox.getElementsByClassName('q')[0];
+      q.setAttribute("value", this.searchterm);
   },
   
   // For definitions of the remaining functions see related documentation  
@@ -611,7 +611,7 @@ OpenSearch.prototype = {
   onDOMContentLoaded: function() {
     try {
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-      opensearch.updateNavButtons(browser.contentDocument.location);
+      opensearch.updateNavButtons();
       let outerbox = browser.parentNode;
       let hbox = outerbox.firstChild;
       hbox.setAttribute('class', 'mininav'); // remove 'hidden';
