@@ -53,6 +53,9 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource:///modules/errUtils.js");
 var EXTPREFNAME = "extension.opensearch.data";
 
+var searchService = Components.classes["@mozilla.org/browser/search-service;1"]
+                              .getService(Components.interfaces
+                                                    .nsIBrowserSearchService);
 
 function ResultRowSingle(term) {
   this.term = term;
@@ -118,33 +121,63 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers.push(new WebSearchCompleter());
       this.engine = this.engine; // load from prefs
       let tabmail = document.getElementById('tabmail');
-  
+
       var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                             .getService(Components.interfaces.nsIPrefBranch);
-  
+
       tabmail.registerTabType(this.siteTabType);
+
+      // Load our search engines into the service.
+      for each (let provider in ["google", "yahoo", "amazondotcom",
+                                 "answers", "creativecommons", "eBay",
+                                 "bing", "wikipedia"]) {
+        searchService.addEngine(
+            "chrome://opensearch/locale/searchplugins/" + provider + ".xml",
+            Components.interfaces.nsISearchEngine.DATA_XML,
+            "", false);
+      }
+
+      for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
+                               "Creative Commons", "Answers.com", "Amazon.com",
+                               "Yahoo", "Google"])
+        searchService.moveEngine(searchService.getEngineByName(engine), 0);
+
+      // Load the engines from the service into our menu.
+      let engines = document.getElementById("engines");
+      for each (let engine in searchService.getVisibleEngines()) {
+        let item = engines.appendItem(engine.name, engine.name);
+        item.setAttribute("image", engine.iconURI.spec);
+        item.setAttribute("type", "radio");
+        item.setAttribute("checked", "" + (this.engine == engine.name));
+      }
     } catch (e) {
       logException(e);
     }
   },
 
+  showPopup: function() {
+    let engines = document.getElementById("engines");
+    for (var i = 0; i < engines.itemCount; i++ ) {
+      let item = engines.getItemAtIndex(i);
+      item.setAttribute("checked", "" + (item.value == this.engine));
+    }
+  },
+
   setSearchEngine: function(event) {
     try {
-      engine = event.target.value;
       this.engine = event.target.value;
-      this.mPrefs.setCharPref('opensearch.engine', engine);
+      this.mPrefs.setCharPref('opensearch.engine', this.engine);
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       var tabmail = document.getElementById('tabmail');
       var context = tabmail._getTabContextForTabbyThing(this.tabthing)
       var tab = context[2];
-      tab.setAttribute('engine', engine);
+      tab.setAttribute('engine', this.engine);
       browser.setAttribute("src", this.getSearchURL(this.searchterm));
-      this.engine = engine;
     } catch (e) {
       logException(e);
     }
   },
-  
+
   set engine(value) {
     this.mPrefs.setCharPref("opensearch.engine", value);
     if (this.tabthing) {
@@ -170,29 +203,27 @@ OpenSearch.prototype = {
   },
   
   getSearchURL: function(searchterm) {
-    switch (this.engine) {
-      case 'yahoo':
-        return "http://search.yahoo.com/search?p=" + encodeURI(searchterm);
-      case 'google':
-        return "http://www.google.com/search?q=" + encodeURI(searchterm);
-      case 'bing':
-        return "http://www.bing.com/search?q=" + encodeURI(searchterm);
-      case 'wikpedia':
-        return "http://en.wikipedia.org/wiki/Special:Search?search=" + encodeURI(searchterm);
+    try {
+      var engine = searchService.getEngineByName(this.engine);
+      var submission = engine.getSubmission(searchterm);
+      return submission.uri.spec;
+    } catch (e) {
+      logException(e);
     }
     return '';
   },
 
   getURLPrefixesForEngine: function() {
     switch (this.engine) {
-      case 'yahoo':
+      case 'Yahoo':
         return ['http://search.yahoo.com', 'http://www.yahoo.com'];
-      case 'google':
+      case 'Google':
         return ['http://www.google.com/search', 'http://google.com/search', 'http://login.google.com'];
-      case 'bing':
+      case 'Bing':
         return ['http://www.bing.com'];
-      case 'wikipedia':
+      case 'Wikipedia (en)':
         return ['http://en.wikipedia.org'];
+      // todo: Add Amazon.com, Answers.com, Creative Commons, and eBay.
     }
   },
 
@@ -248,6 +279,12 @@ OpenSearch.prototype = {
 
       clone.setAttribute("id", "siteTab" + this.lastBrowserId);
       clone.setAttribute("collapsed", false);
+
+      let engines = clone.getElementsByTagName("menulist")[0];
+      for (var i=0; i<engines.itemCount; i++) {
+        let item = engines.getItemAt(i);
+        item.setAttribute("checked", "" + (this.engine == item.label));
+      }
 
       aTab.panel.appendChild(clone);
 
@@ -471,26 +508,21 @@ OpenSearch.prototype = {
 
   updateHeight: function(sync) {
     try {
-      dump('in updateHeight\n');
       window.clearTimeout(opensearch.timeout);
       let f = function () {
-        dump('timedout\n');
         try {
           let browser = opensearch.tabthing.browser;
           let outerbox = browser.parentNode;
           let hbox = outerbox.firstChild;
-          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
           outerbox.height = browser.contentDocument.height + hbox.clientHeight + 'px';
           //browser.height = browser.contentDocument.height +hbox.clientHeight + 'px';
           //browser.minHeight = browser.contentDocument.height +hbox.clientHeight + 'px';
-          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
           window.clearTimeout(opensearch.timeout);
         } catch (e) {
           logException(e);
         }
       }
       if (sync) {
-        dump('doing it sync\n');
         f();
       }
       else {
