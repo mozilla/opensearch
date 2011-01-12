@@ -137,36 +137,42 @@ OpenSearch.prototype = {
             "", false);
       }
 
+      for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
+                               "Creative Commons", "Answers.com", "Amazon.com",
+                               "Yahoo", "Google"])
+        searchService.moveEngine(searchService.getEngineByName(engine), 0);
+
       // Load the engines from the service into our menu.
       let engines = document.getElementById("engines");
       for each (let engine in searchService.getVisibleEngines()) {
         let item = engines.appendItem(engine.name, engine.name);
         item.setAttribute("image", engine.iconURI.spec);
         item.setAttribute("type", "radio");
-        if (this.engine == engine.name)
-          item.setAttribute("checked", "true");
-        else
-          item.removeAttribute("checked");
-        dump(engine.name+" == "+this.engine+": "+
-             item.hasAttribute("checked")+"\n");
+        item.setAttribute("checked", "" + (this.engine == engine.name));
       }
     } catch (e) {
       logException(e);
     }
   },
 
+  showPopup: function() {
+    let engines = document.getElementById("engines");
+    for (var i = 0; i < engines.itemCount; i++ ) {
+      let item = engines.getItemAtIndex(i);
+      item.setAttribute("checked", "" + (item.value == this.engine));
+    }
+  },
+
   setSearchEngine: function(event) {
     try {
-      engine = event.target.value;
       this.engine = event.target.value;
-      this.mPrefs.setCharPref('opensearch.engine', engine);
+      this.mPrefs.setCharPref('opensearch.engine', this.engine);
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       var tabmail = document.getElementById('tabmail');
       var context = tabmail._getTabContextForTabbyThing(this.tabthing)
       var tab = context[2];
-      tab.setAttribute('engine', engine);
+      tab.setAttribute('engine', this.engine);
       browser.setAttribute("src", this.getSearchURL(this.searchterm));
-      this.engine = engine;
     } catch (e) {
       logException(e);
     }
@@ -274,22 +280,11 @@ OpenSearch.prototype = {
       clone.setAttribute("id", "siteTab" + this.lastBrowserId);
       clone.setAttribute("collapsed", false);
 
-      dump("\n\n\nXXXXX\n");
-      try {
       let engines = clone.getElementsByTagName("menulist")[0];
-      dump(engines+"\n");
-      dump(engines.itemCount+"\n  .");
-      dump([i for (i in engines)].join("\n  ."));
       for (var i=0; i<engines.itemCount; i++) {
         let item = engines.getItemAt(i);
-        dump(item.label+" == "+this.engine+": "+
-             item.hasAttribute("checked")+"\n");
+        item.setAttribute("checked", "" + (this.engine == item.label));
       }
-      } catch (e) {
-        dump("Got exception "+e+"\n");
-        logException(e);
-      }
-
 
       aTab.panel.appendChild(clone);
 
@@ -513,26 +508,21 @@ OpenSearch.prototype = {
 
   updateHeight: function(sync) {
     try {
-      dump('in updateHeight\n');
       window.clearTimeout(opensearch.timeout);
       let f = function () {
-        dump('timedout\n');
         try {
           let browser = opensearch.tabthing.browser;
           let outerbox = browser.parentNode;
           let hbox = outerbox.firstChild;
-          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
           outerbox.height = browser.contentDocument.height + hbox.clientHeight + 'px';
           //browser.height = browser.contentDocument.height +hbox.clientHeight + 'px';
           //browser.minHeight = browser.contentDocument.height +hbox.clientHeight + 'px';
-          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
           window.clearTimeout(opensearch.timeout);
         } catch (e) {
           logException(e);
         }
       }
       if (sync) {
-        dump('doing it sync\n');
         f();
       }
       else {
