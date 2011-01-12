@@ -14,7 +14,7 @@
           this._adjustAcItem();
           ]]>
       </constructor>
-      
+
       <property name="label" readonly="true">
         <getter>
           <![CDATA[
@@ -22,7 +22,7 @@
           ]]>
         </getter>
       </property>
-      
+
       <method name="_adjustAcItem">
         <body>
           <![CDATA[

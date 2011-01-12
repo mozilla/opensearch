@@ -21,7 +21,7 @@
  * 1.1 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
  * http://www.mozilla.org/MPL/
- * 
+ *
  * Software distributed under the License is distributed on an "AS IS" basis,
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
@@ -47,7 +47,7 @@
  * and other provisions required by the GPL or the LGPL. If you do not delete
  * the provisions above, a recipient may use your version of this file under
  * the terms of any one of the MPL, the GPL or the LGPL.
- * 
+ *
  * ***** END LICENSE BLOCK ***** */
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource:///modules/errUtils.js");
@@ -193,7 +193,7 @@ OpenSearch.prototype = {
       browser.setAttribute("src", this.getSearchURL(this.searchterm));
     }
   },
-  
+
   get engine() {
     try {
       return this.mPrefs.getCharPref("opensearch.engine");
@@ -201,7 +201,7 @@ OpenSearch.prototype = {
       return 'google';
     }
   },
-  
+
   getSearchURL: function(searchterm) {
     try {
       var engine = searchService.getEngineByName(this.engine);
@@ -532,7 +532,7 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-  
+
   doSearch: function(searchterm) {
     try {
       this.searchterm = searchterm;
@@ -574,13 +574,13 @@ OpenSearch.prototype = {
         Components.interfaces.nsISupportsWeakReference,
         Components.interfaces.nsISupports
         ]),
-  
-  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},  
-  onLocationChange: function(aProgress, aRequest, aURI)  
+
+  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
+  onLocationChange: function(aProgress, aRequest, aURI)
   {
     this.updateNavButtons();
   },
-  
+
   updateNavButtons: function(uristring) {
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       let outerbox = browser.parentNode;
@@ -592,8 +592,8 @@ OpenSearch.prototype = {
       let q = hbox.getElementsByClassName('q')[0];
       q.setAttribute("value", this.searchterm);
   },
-  
-  // For definitions of the remaining functions see related documentation  
+
+  // For definitions of the remaining functions see related documentation
   onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
   onSecurityChange: function(aWebProgress, aRequest, aState) { },
@@ -616,7 +616,7 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-  
+
   goBack: function() {
     try {
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
