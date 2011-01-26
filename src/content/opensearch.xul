@@ -73,25 +73,6 @@
     </vbox>
   </tabmail>
 
-  <!--<toolbar id="mail-bar3">-->
-  <!--  <toolbaritem id="web-search" insertafter="button-getmsg"-->
-  <!--               title="Search Web"-->
-  <!--               align="center"-->
-  <!--               flex="1"-->
-  <!--               class="chromeclass-toolbar-additional">-->
-  <!--      <textbox id="webSearchInput" -->
-  <!--               flex="1"-->
-  <!--               type="search"-->
-  <!--               searchbutton="true"-->
-  <!--               enablehistory="true"-->
-  <!--               timeout="200"-->
-  <!--               placeholder="Search web"-->
-  <!--               emptytext="Search web"-->
-  <!--               onkeypress="if (event.keyCode == 13) {opensearch.doSearch(event.target.value)} "-->
-  <!--               >-->
-  <!--      </textbox>-->
-  <!--  </toolbaritem>-->
-  <!--</toolbar>-->
   <popup id="mailContext">
     <menuitem id="mailContext-browserBack"
               label="Go Back"
@@ -100,4 +81,17 @@
               label="Go Forward"
               oncommand="getBrowser().goForward();"/>
   </popup>
+
+  <menupopup id="mailContext">
+    <menu id="mailContext-search" label="Search…"
+          insertafter="mailContext-editAsNew">
+      <menupopup id="mailContext-searchpopup"
+                 onpopupshowing="opensearch.initContextPopup(event)"
+                 oncommand="opensearch.doSearch(event.target.value)">
+        <menuitem id="mailContext-searchTheWeb"
+                  label="Search the web…"/>
+        <menuseparator id="mailContext-sep-search"/>
+      </menupopup>
+    </menu>
+  </menupopup>
 </overlay>

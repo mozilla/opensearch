@@ -163,6 +163,40 @@ OpenSearch.prototype = {
     }
   },
 
+  initContextPopup: function(event) {
+    let self = this;
+    let menuitem = document.getElementById("mailContext-searchTheWeb");
+
+    // Change the label to include the selected text.
+    let browser = document.getElementById("messagepane");
+    let selection = browser.contentWindow.getSelection();
+
+    // Or the previously searched-for text.
+    if (selection.isCollapsed)
+      selection = this.searchterm;
+
+    if (selection) {
+      menuitem.label = "Search the web for: " + selection;
+      menuitem.value = "" + selection;
+      menuitem.disabled = false;
+    }
+    else {
+      // Or just disable the item.
+      menuitem.label = "Search the web…";
+      menuitem.value = "";
+      menuitem.disabled = true;
+    }
+
+    // Clear out the previous entries.
+    let menu = document.getElementById("mailContext-search");
+    while (menu.itemCount > 2)
+      menu.removeItemAt(2);
+
+    // Add this email's Amazon items.
+    menuitem = menu.appendItem('Find "The Secret Of Now" on Amazon',
+                               "The Secret Of Now");
+  },
+
   setSearchTerm: function(searchterm) {
     this.searchterm = searchterm;
     let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
