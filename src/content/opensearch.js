@@ -163,21 +163,30 @@ OpenSearch.prototype = {
     }
   },
 
+  setSearchTerm: function(searchterm) {
+    this.searchterm = searchterm;
+    let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+    browser.setAttribute("src", this.getSearchURL(this.searchterm));
+  },
+
   setSearchEngine: function(event) {
     try {
       this.engine = event.target.value;
-      this.mPrefs.setCharPref('opensearch.engine', this.engine);
       let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
       var tabmail = document.getElementById('tabmail');
       var context = tabmail._getTabContextForTabbyThing(this.tabthing)
       var tab = context[2];
       tab.setAttribute('engine', this.engine);
-      browser.setAttribute("src", this.getSearchURL(this.searchterm));
     } catch (e) {
       logException(e);
     }
   },
 
+  /*
+   * Note: This also re-sets the search term, as we feel that's the better
+   *       UX.  If you want to use the previous search term, you'll need to
+   *       save it off yourself and call opensearch.setSearchTerm(oldTerm);
+   */
   set engine(value) {
     this.mPrefs.setCharPref("opensearch.engine", value);
     if (this.tabthing) {
@@ -190,7 +199,7 @@ OpenSearch.prototype = {
       tab.setAttribute('engine', this.engine);
       let menulist = tabmail.getElementsByClassName("menulist")[0];
       menulist.setAttribute("value", this.engine);
-      browser.setAttribute("src", this.getSearchURL(this.searchterm));
+      this.setSearchTerm(document.getElementById('q').value);
     }
   },
 
