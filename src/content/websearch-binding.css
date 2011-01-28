@@ -1,5 +1,0 @@
-.autocomplete-richlistitem[type="websearch"] {
-  -moz-binding: url("chrome://opensearch/content/opensearch.xml#websearch");
-  overflow: -moz-hidden-unscrollable;
-}
-
