@@ -51,8 +51,7 @@ var MODULE_REQUIRES = ["folder-display-helpers", "window-helpers"];
  * Sets up the test module by acquiring a browser controller.
  * @param {module} module object for the test used by Mozmill.
  */
-var setupModule = function(module)
-{
+function setupModule(module) {
   let fdh = collector.getModule("folder-display-helpers");
   fdh.installInto(module);
 
@@ -67,10 +66,25 @@ var setupModule = function(module)
 }
 
 /**
- * This test just verified the element can be found.
+ * This test just verifies the element can be found.
  */
-var testOpensearchInstalled = function()
-{
+function test_opensearch_installed() {
   mc.ewait("mailContext-search");
 }
 
+/**
+ * This tests verifies that we can select some words in the message, and
+ * right-click to search for them.
+ */
+function test_right_click_search() {
+  // focus explicitly on the thread pane so we know where the focus is.
+  mc.e("threadTree").focus();
+  // select a message so we can find in message
+  select_click_row(0);
+  assert_selected_and_displayed(0);
+  // mc.window.content.document.select text.
+  // right-click in the message.
+  // make sure the text is in the menu item.
+  // click the menu item.
+  // make sure we've searched for the text.
+}
