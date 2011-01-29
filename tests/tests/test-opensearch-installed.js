@@ -79,12 +79,34 @@ function test_opensearch_installed() {
 function test_right_click_search() {
   // focus explicitly on the thread pane so we know where the focus is.
   mc.e("threadTree").focus();
-  // select a message so we can find in message
+  // select the text of a message so we can find in message
   select_click_row(0);
   assert_selected_and_displayed(0);
-  // mc.window.content.document.select text.
+  let pane = mc.e("messagepane");
+  let win = pane.contentWindow;
+  let doc = pane.contentDocument;
+  let selection = win.getSelection();
+  let range = doc.createRange();
+  range.selectNode(doc.body);
+  selection.removeAllRanges();
+  selection.addRange(range);
+
   // right-click in the message.
+  mc.rightClick(mc.eid("messagepane"));
+  // Give the menu a chance to open…
+  mc.sleep(500);
+  // And populate the search menu by opening it.
+  mc.click(mc.eid("mailContext-search"));
+
   // make sure the text is in the menu item.
+  let menuitem = mc.e("mailContext-searchTheWeb");
+  let expected = ("" + range).trim();
+  assert_equals(menuitem.disabled, false, "Search menuitem shouldn't be disabled.");
+  assert_equals(menuitem.value.trim(), expected,
+               "Search menuitem value is different from selection.");
+  //assert_true(menuitem.label.indexOf(expected) != -1,
+              //"Search menuitem label doesn't contain selection.");
+  mc.sleep(10000);
   // click the menu item.
   // make sure we've searched for the text.
 }
