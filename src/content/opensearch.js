@@ -136,11 +136,24 @@ OpenSearch.prototype = {
             Components.interfaces.nsISearchEngine.DATA_XML,
             "", false);
       }
+      // Wait for the service to finish loading the engines.
+      setTimeout(this.finishLoading, 2000);
 
+    } catch (e) {
+      logException(e);
+    }
+  },
+
+  finishLoading: function() {
+    try {
+      // Put the engines in the correct order.
       for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
                                "Creative Commons", "Answers.com", "Amazon.com",
-                               "Yahoo", "Google"])
-        searchService.moveEngine(searchService.getEngineByName(engine), 0);
+                               "Yahoo", "Google"]) {
+        let engineObj = searchService.getEngineByName(engine);
+        if (engineObj)
+          searchService.moveEngine(engineObj, 0);
+      }
 
       // Load the engines from the service into our menu.
       let engines = document.getElementById("engines");
