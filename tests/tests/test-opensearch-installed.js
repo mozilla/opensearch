@@ -83,20 +83,16 @@ function test_right_click_search() {
   select_click_row(0);
   assert_selected_and_displayed(0);
   let pane = mc.e("messagepane");
-  let win = pane.contentWindow;
   let doc = pane.contentDocument;
-  let selection = win.getSelection();
+  let selection = pane.contentWindow.getSelection();
   let range = doc.createRange();
   range.selectNode(doc.body);
   selection.removeAllRanges();
   selection.addRange(range);
 
-  // right-click in the message.
+  // Right-click in the message, and populate the search menu by opening it.
   mc.rightClick(mc.eid("messagepane"));
-  // Give the menu a chance to open…
-  mc.sleep(500);
-  // And populate the search menu by opening it.
-  mc.click(mc.eid("mailContext-search"));
+  mc.click_menus_in_sequence(mc.e("mailContext"), [{id:"mailContext-search"}]);
 
   // make sure the text is in the menu item.
   let menuitem = mc.e("mailContext-searchTheWeb");
@@ -106,7 +102,6 @@ function test_right_click_search() {
                "Search menuitem value is different from selection.");
   //assert_true(menuitem.label.indexOf(expected) != -1,
               //"Search menuitem label doesn't contain selection.");
-  mc.sleep(10000);
   // click the menu item.
   // make sure we've searched for the text.
 }
