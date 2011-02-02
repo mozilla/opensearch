@@ -100,8 +100,8 @@ function test_right_click_search() {
   assert_equals(menuitem.disabled, false, "Search menuitem shouldn't be disabled.");
   assert_equals(menuitem.value.trim(), expected,
                "Search menuitem value is different from selection.");
-  //assert_true(menuitem.label.indexOf(expected) != -1,
-              //"Search menuitem label doesn't contain selection.");
+  assert_true(menuitem.label.indexOf(expected) != -1,
+              "Search menuitem label doesn't contain selection.");
   // click the menu item.
   // make sure we've searched for the text.
 }
