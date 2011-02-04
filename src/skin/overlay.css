@@ -31,10 +31,6 @@ tab[type="siteTab"][engine="wikipedia"] .tab-icon-image {
   list-style-image: url('http://www.wikipedia.org/favicon.ico');
 }
 
-.mininav.hidden {
-  display:none;
-}
-
 hbox.mininav {
   background: #ddd;
   border-bottom: 1px solid #8c8c8c;

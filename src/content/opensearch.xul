@@ -48,7 +48,7 @@
     <vbox id="siteTab" collapsed="true">
       <vbox flex="1">
         <notificationbox flex="1">
-          <hbox class="mininav hidden">
+          <hbox id="navbar" class="mininav">
             <button class="back" label="&#0171;"/>
             <button class="forward" label="&#187;"/>
             <textbox class="q" id="q" flex="1" crop="center"

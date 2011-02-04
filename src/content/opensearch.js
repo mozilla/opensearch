@@ -274,7 +274,7 @@ OpenSearch.prototype = {
       case "Yahoo":
         return ["http://search.yahoo.com", "http://www.yahoo.com"];
       case "Google":
-        return ["http://www.google.com/search", "http://google.com/search", "http://login.google.com"];
+        return ["http://www.google.com", "http://www.google.ca", "http://login.google.com"];
       case "Bing":
         return ["http://www.bing.com"];
       case "Wikipedia (en)":
@@ -602,6 +602,7 @@ OpenSearch.prototype = {
       tab.setAttribute("class", tab.getAttribute("class") + " google");
       let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       browser.addEventListener("DOMContentLoaded", this.onDOMContentLoaded, false);
+      browser.addEventListener("scroll", this.onScroll, false);
       tab.setAttribute("engine", this.engine);
       let menulist = tabmail.getElementsByClassName("menulist")[0];
       menulist.setAttribute("value", this.engine);
@@ -652,20 +653,23 @@ OpenSearch.prototype = {
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
   onSecurityChange: function(aWebProgress, aRequest, aState) { },
 
+  onScroll: function() {
+    let contentWindow = document.getElementById("tabmail")
+                                .getBrowserForSelectedTab().contentWindow;
+    document.getElementById("navbar").hidden = (contentWindow.pageYOffset != 0);
+  },
+
   onDOMContentLoaded: function() {
     try {
       let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       opensearch.updateNavButtons();
-      let outerbox = browser.parentNode;
-      let hbox = outerbox.firstChild;
-      hbox.setAttribute("class", "mininav"); // remove "hidden";
-      // XXX something's not right when we go from a short page through links to a longer page
-      outerbox.height = browser.contentDocument.height  + hbox.clientHeight + "px";
-      browser.height = browser.contentDocument.height +hbox.clientHeight + "px";
-      browser.minHeight = browser.contentDocument.height +hbox.clientHeight + "px";
-      outerbox.style.overflowY = "auto";
-      outerbox.scrollTop = hbox.clientHeight + 1;  // for border - XXX fix.
-      browser.style.overflow = "hidden";
+      let navbar = document.getElementById("navbar");
+      navbar.hidden = false;
+      setTimeout(function() {
+        // Scroll up a pixel, if we can, to hide the navbar.
+        document.getElementById("tabmail").getBrowserForSelectedTab()
+                                          .contentWindow.scroll(0,1);
+      }, 2000);
     } catch (e) {
       logException(e);
     }
