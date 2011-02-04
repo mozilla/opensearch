@@ -82,6 +82,19 @@
               oncommand="getBrowser().goForward();"/>
   </popup>
 
+  <menupopup id="messageMenuPopup">
+    <menu id="menu_search" label="Search…"
+          insertafter="menu_editMsgAsNew">
+      <menupopup id="menu_searchpopup"
+                 onpopupshowing="opensearch.initContextPopup(event)"
+                 oncommand="opensearch.doSearch(event.target.value)">
+        <menuitem id="menu_searchTheWeb"
+                  label="Search the web…"/>
+        <menuseparator id="mailContext-sep-search"/>
+      </menupopup>
+    </menu>
+  </menupopup>
+
   <menupopup id="mailContext">
     <menu id="mailContext-search" label="Search…"
           insertafter="mailContext-editAsNew">

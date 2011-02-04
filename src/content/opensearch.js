@@ -178,7 +178,7 @@ OpenSearch.prototype = {
 
   initContextPopup: function(event) {
     let self = this;
-    let menuitem = document.getElementById("mailContext-searchTheWeb");
+    let menuitem = event.target.firstChild;
 
     // Change the label to include the selected text.
     let browser = document.getElementById("messagepane");
@@ -201,7 +201,7 @@ OpenSearch.prototype = {
     }
 
     // Clear out the previous entries.
-    let menu = document.getElementById("mailContext-search");
+    let menu = event.target.parentNode;
     while (menu.itemCount > 2)
       menu.removeItemAt(2);
 
