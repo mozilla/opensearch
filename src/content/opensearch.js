@@ -246,7 +246,7 @@ OpenSearch.prototype = {
       tab.setAttribute("engine", this.engine);
       let menulist = tabmail.getElementsByClassName("menulist")[0];
       menulist.setAttribute("value", this.engine);
-      this.setSearchTerm(document.getElementById("q").value);
+      this.setSearchTerm(this.searchterm);
     }
   },
 
@@ -602,7 +602,6 @@ OpenSearch.prototype = {
       tab.setAttribute("class", tab.getAttribute("class") + " google");
       let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       browser.addEventListener("DOMContentLoaded", this.onDOMContentLoaded, false);
-      browser.addEventListener("scroll", this.onScroll, false);
       tab.setAttribute("engine", this.engine);
       let menulist = tabmail.getElementsByClassName("menulist")[0];
       menulist.setAttribute("value", this.engine);
@@ -644,8 +643,6 @@ OpenSearch.prototype = {
       backButton.setAttribute("disabled", ! browser.canGoBack);
       let forwardButton = hbox.getElementsByClassName("forward")[0];
       forwardButton.setAttribute("disabled", ! browser.canGoForward);
-      let q = hbox.getElementsByClassName("q")[0];
-      q.setAttribute("value", this.searchterm);
   },
 
   // For definitions of the remaining functions see related documentation
@@ -653,23 +650,10 @@ OpenSearch.prototype = {
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
   onSecurityChange: function(aWebProgress, aRequest, aState) { },
 
-  onScroll: function() {
-    let contentWindow = document.getElementById("tabmail")
-                                .getBrowserForSelectedTab().contentWindow;
-    document.getElementById("navbar").hidden = (contentWindow.pageYOffset != 0);
-  },
-
   onDOMContentLoaded: function() {
     try {
       let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       opensearch.updateNavButtons();
-      let navbar = document.getElementById("navbar");
-      navbar.hidden = false;
-      setTimeout(function() {
-        // Scroll up a pixel, if we can, to hide the navbar.
-        document.getElementById("tabmail").getBrowserForSelectedTab()
-                                          .contentWindow.scroll(0,1);
-      }, 2000);
     } catch (e) {
       logException(e);
     }

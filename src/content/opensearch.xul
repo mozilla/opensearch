@@ -46,30 +46,23 @@
   <browser id="dummycontentbrowser" disablehistory="false"/>
   <tabmail id="tabmail">
     <vbox id="siteTab" collapsed="true">
-      <vbox flex="1">
-        <notificationbox flex="1">
-          <hbox id="navbar" class="mininav">
+      <hbox flex="1">
+        <vbox id="navbar" class="mininav">
+          <hbox id="navbuttons">
             <button class="back" label="&#0171;"/>
             <button class="forward" label="&#187;"/>
-            <textbox class="q" id="q" flex="1" crop="center"
-                     type="search" searchbutton="true"
-                     oncommand="opensearch.setSearchTerm(this.value)"/>
-            <!--<button label="Which search engine?" type="menu">-->
-              <menulist id="engines" class="menulist"
-                        oncommand="opensearch.setSearchEngine(event)">
-                <menupopup onpopupshowing="opensearch.showPopup()">
-                </menupopup>
-              </menulist>
-            <!--</button>-->
-            <button class="go" label="Search"
-                    oncommand="opensearch.setSearchTerm(document.getElementById('q').value)"/>
           </hbox>
-          <browser id="dummycontentbrowser" type="content-targetable" flex="1"
-                   disablehistory="true" autocompletepopup="PopupAutoComplete"
-                   context="mailContext"/>
-        </notificationbox>
+          <menulist id="engines" class="menulist" sizetopopup="always"
+                    oncommand="opensearch.setSearchEngine(event)">
+            <menupopup onpopupshowing="opensearch.showPopup()">
+            </menupopup>
+          </menulist>
+        </vbox>
+        <browser id="dummycontentbrowser" type="content-targetable" flex="1"
+                 disablehistory="true" autocompletepopup="PopupAutoComplete"
+                 context="mailContext"/>
         <findbar browserid="dummycontentbrowser"/>
-      </vbox>
+      </hbox>
     </vbox>
   </tabmail>
 
