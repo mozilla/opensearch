@@ -187,8 +187,11 @@ OpenSearch.prototype = {
   },
 
   initContextPopup: function(event) {
-    let self = this;
-    let menuitem = event.target.firstChild;
+    let menuid = "menu_searchTheWeb";
+    if (event.target.id == "mailContext")
+      menuid = "mailContext_searchTheWeb";
+
+    let menuitem = document.getElementById(menuid);
 
     // Change the label to include the selected text.
     let browser = document.getElementById("messagepane");
@@ -210,14 +213,10 @@ OpenSearch.prototype = {
       menuitem.disabled = true;
     }
 
-    // Clear out the previous entries.
-    let menu = event.target.parentNode;
-    while (menu.itemCount > 2)
-      menu.removeItemAt(2);
-
-    // Add this email's Amazon items.
-    //menuitem = menu.appendItem('Find "The Secret Of Now" on Amazon',
-                               //"The Secret Of Now");
+    if (menuid == "menu_searchTheWeb")
+      InitMessageMenu();
+    else
+      return fillMailContextMenu(event);
   },
 
   setSearchTerm: function(searchterm) {
