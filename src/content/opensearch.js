@@ -216,8 +216,8 @@ OpenSearch.prototype = {
       menu.removeItemAt(2);
 
     // Add this email's Amazon items.
-    menuitem = menu.appendItem('Find "The Secret Of Now" on Amazon',
-                               "The Secret Of Now");
+    //menuitem = menu.appendItem('Find "The Secret Of Now" on Amazon',
+                               //"The Secret Of Now");
   },
 
   setSearchTerm: function(searchterm) {

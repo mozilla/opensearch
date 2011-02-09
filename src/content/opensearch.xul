@@ -90,7 +90,7 @@
                  oncommand="opensearch.doSearch('menu', event.target.value)">
         <menuitem id="menu_searchTheWeb"
                   label="Search the web…"/>
-        <menuseparator id="mailContext-sep-search"/>
+        <!-- menuseparator id="mailContext-sep-search"/ -->
       </menupopup>
     </menu>
   </menupopup>
@@ -103,7 +103,7 @@
                  oncommand="opensearch.doSearch('context', event.target.value)">
         <menuitem id="mailContext-searchTheWeb"
                   label="Search the web…"/>
-        <menuseparator id="mailContext-sep-search"/>
+        <!-- menuseparator id="mailContext-sep-search"/ -->
       </menupopup>
     </menu>
   </menupopup>
