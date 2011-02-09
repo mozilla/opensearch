@@ -99,6 +99,16 @@ WebSearchCompleter.prototype = {
   }
 };
 
+function log(whereFrom, engine) {
+  url = "https://opensearch.live.mozillamessaging.com/search" +
+        "?provider=" + engine +
+        "&from=" + whereFrom;
+  req = new XMLHttpRequest();
+  req.open('GET', url);
+  req.channel.loadFlags |= Components.interfaces.nsIRequest.LOAD_BYPASS_CACHE;
+  req.send(null);
+};
+
 
 function OpenSearch() {
 
@@ -551,7 +561,7 @@ OpenSearch.prototype = {
         return; // autocomplete didn't even finish.
       let row = curResult.getObjectAt(selectedIndex);
       if (row.typeForStyle != "websearch") return;
-      opensearch.doSearch(aSubject.state.string);
+      opensearch.doSearch('gloda', aSubject.state.string);
     }
   },
 
@@ -587,8 +597,9 @@ OpenSearch.prototype = {
     }
   },
 
-  doSearch: function(searchterm) {
+  doSearch: function(whereFrom, searchterm) {
     try {
+      log(whereFrom, this.engine);
       this.searchterm = searchterm;
       let options = {background : false ,
                      contentPage : this.getSearchURL(searchterm),
@@ -661,6 +672,7 @@ OpenSearch.prototype = {
 
   onDOMContentLoaded: function() {
     try {
+      log("browser", opensearch.engine);
       let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       opensearch.updateNavButtons();
       let navbar = document.getElementById("navbar");

@@ -87,7 +87,7 @@
           insertafter="menu_editMsgAsNew">
       <menupopup id="menu_searchpopup"
                  onpopupshowing="opensearch.initContextPopup(event)"
-                 oncommand="opensearch.doSearch(event.target.value)">
+                 oncommand="opensearch.doSearch('menu', event.target.value)">
         <menuitem id="menu_searchTheWeb"
                   label="Search the web…"/>
         <menuseparator id="mailContext-sep-search"/>
@@ -100,7 +100,7 @@
           insertafter="mailContext-editAsNew">
       <menupopup id="mailContext-searchpopup"
                  onpopupshowing="opensearch.initContextPopup(event)"
-                 oncommand="opensearch.doSearch(event.target.value)">
+                 oncommand="opensearch.doSearch('context', event.target.value)">
         <menuitem id="mailContext-searchTheWeb"
                   label="Search the web…"/>
         <menuseparator id="mailContext-sep-search"/>
