@@ -100,7 +100,7 @@ WebSearchCompleter.prototype = {
 };
 
 function log(whereFrom, engine) {
-  url = "https://opensearch.live.mozillamessaging.com/search" +
+  url = "https://opensearch-live.mozillamessaging.com/search" +
         "?provider=" + engine +
         "&from=" + whereFrom;
   req = new XMLHttpRequest();
@@ -138,7 +138,7 @@ OpenSearch.prototype = {
       tabmail.registerTabType(this.siteTabType);
 
       // Load our search engines into the service.
-      for each (let provider in ["google", "yahoo", "amazondotcom",
+      for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
                                  "answers", "creativecommons", "eBay",
                                  "bing", "wikipedia"]) {
         searchService.addEngine(
@@ -159,7 +159,7 @@ OpenSearch.prototype = {
       // Put the engines in the correct order.
       for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
                                "Creative Commons", "Answers.com", "Amazon.com",
-                               "Yahoo", "Google"]) {
+                               "Twitter Search", "Yahoo", "Google"]) {
         let engineObj = searchService.getEngineByName(engine);
         if (engineObj)
           searchService.moveEngine(engineObj, 0);
