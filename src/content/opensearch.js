@@ -187,8 +187,7 @@ OpenSearch.prototype = {
     let menuitem = document.getElementById(menuid);
 
     // Change the label to include the selected text.
-    let browser = document.getElementById("messagepane");
-    let selection = browser.contentWindow.getSelection();
+    let selection = document.commandDispatcher.focusedWindow.getSelection();
 
     // Or the previously searched-for text.
     if (!selection || selection.isCollapsed)
