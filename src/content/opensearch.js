@@ -73,21 +73,9 @@ function WebSearchCompleter() {
 
 WebSearchCompleter.prototype = {
   complete: function WebSearchCompleter_complete(aResult, aString) {
-    if (aString.length < 3) {
-      // In CJK, first name or last name is sometime used as 1 character only.
-      // So we allow autocompleted search even if 1 character.
-      //
-      // [U+3041 - U+9FFF ... Full-width Katakana, Hiragana
-      //                      and CJK Ideograph
-      // [U+AC00 - U+D7FF ... Hangul
-      // [U+F900 - U+FFDC ... CJK compatibility ideograph
-      if (!aString.match(/[\u3041-\u9fff\uac00-\ud7ff\uf900-\uffdc]/))
-        return false;
-    }
-
-    let rows = [new ResultRowSingle(aString)];
-    aResult.addRows(rows);
-    return true;
+    aResult.addRows([new ResultRowSingle(aString)]);
+    // We have nothing pending.
+    return false;
   },
   onItemsAdded: function(aItems, aCollection) {
   },
@@ -128,7 +116,12 @@ OpenSearch.prototype = {
     try {
       this.mOS.addObserver(opensearch, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
-      this.glodaCompleter.completers.push(new WebSearchCompleter());
+
+      // Add us as the second completer.
+      this.glodaCompleter.completers.unshift(null);
+      this.glodaCompleter.completers[0] = this.glodaCompleter.completers[1];
+      this.glodaCompleter.completers[1] = new WebSearchCompleter();
+
       this.engine = this.engine; // load from prefs
       let tabmail = document.getElementById("tabmail");
 
