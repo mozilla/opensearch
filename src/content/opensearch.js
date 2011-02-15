@@ -88,10 +88,10 @@ WebSearchCompleter.prototype = {
 };
 
 function log(whereFrom, engine) {
-  url = "https://opensearch-live.mozillamessaging.com/search" +
+  let url = "https://opensearch-live.mozillamessaging.com/search" +
         "?provider=" + engine +
         "&from=" + whereFrom;
-  req = new XMLHttpRequest();
+  let req = new XMLHttpRequest();
   req.open('GET', url);
   req.channel.loadFlags |= Components.interfaces.nsIRequest.LOAD_BYPASS_CACHE;
   req.send(null);
@@ -191,7 +191,7 @@ OpenSearch.prototype = {
     let selection = browser.contentWindow.getSelection();
 
     // Or the previously searched-for text.
-    if (selection.isCollapsed)
+    if (!selection || selection.isCollapsed)
       selection = this.searchterm;
 
     if (selection) {
