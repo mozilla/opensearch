@@ -255,7 +255,9 @@ OpenSearch.prototype = {
     try {
       return this.mPrefs.getCharPref("opensearch.engine");
     } catch (e) {
-      return "google";
+      if (searchService.defaultEngine != null)
+        return searchService.defaultEngine.name;
+      return "Google";
     }
   },
 
