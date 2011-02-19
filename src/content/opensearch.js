@@ -337,13 +337,16 @@ OpenSearch.prototype = {
       clone.setAttribute("id", "siteTab" + this.lastBrowserId);
       clone.setAttribute("collapsed", false);
 
+      aTab.panel.appendChild(clone);
+
       let engines = clone.getElementsByTagName("menulist")[0];
       for (var i=0; i<engines.itemCount; i++) {
-        let item = engines.getItemAt(i);
-        item.setAttribute("checked", "" + (this.engine == item.label));
+        let item = engines.getItemAtIndex(i);
+        if (opensearch.engine == item.label) {
+          engines.selectedIndex = i;
+          break;
+        }
       }
-
-      aTab.panel.appendChild(clone);
 
       // Start setting up the browser.
       aTab.browser = aTab.panel.getElementsByTagName("browser")[0];
