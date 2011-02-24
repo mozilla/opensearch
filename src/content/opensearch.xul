@@ -52,15 +52,10 @@
             <button class="back" label="&#0171;"/>
             <button class="forward" label="&#187;"/>
             <textbox class="q" id="q" flex="1" crop="center"
-                     type="search" searchbutton="true"
-                     oncommand="opensearch.setSearchTerm(this.value)"/>
-            <!--<button label="Which search engine?" type="menu">-->
-              <menulist id="engines" class="menulist"
-                        oncommand="opensearch.setSearchEngine(event)">
-                <menupopup onpopupshowing="opensearch.showPopup()">
-                </menupopup>
-              </menulist>
-            <!--</button>-->
+                     type="search" searchbutton="true"/>
+            <menulist id="engines" class="menulist">
+              <menupopup></menupopup>
+            </menulist>
             <button class="go" label="Search"
                     oncommand="opensearch.setSearchTerm(document.getElementById('q').value)"/>
           </hbox>

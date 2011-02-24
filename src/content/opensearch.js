@@ -98,6 +98,362 @@ function log(whereFrom, engine) {
 };
 
 
+/**
+ * A tab to show content pages.
+ */
+var siteTabType = {
+  name: "siteTab",
+  perTabPanel: "vbox",
+  lastBrowserId: 0,
+  get loadingTabString() {
+    delete this.loadingTabString;
+    return this.loadingTabString = document.getElementById("bundle_messenger")
+                                           .getString("loadingTab");
+  },
+
+  modes: {
+    siteTab: {
+      type: "siteTab",
+      maxTabs: 10
+    }
+  },
+
+  shouldSwitchTo: function onSwitchTo({contentPage: aContentPage}) {
+    let tabmail = document.getElementById("tabmail");
+    let tabInfo = tabmail.tabInfo;
+
+    // Remove any anchors - especially for the about: pages, we just want
+    // to re-use the same tab.
+    let regEx = new RegExp("#.*");
+
+    let contentUrl = aContentPage.replace(regEx, "");
+
+    for (let selectedIndex = 0; selectedIndex < tabInfo.length;
+         ++selectedIndex) {
+      if (tabInfo[selectedIndex].mode.name == this.name &&
+          tabInfo[selectedIndex].browser.currentURI.spec
+                                .replace(regEx, "") == contentUrl) {
+        // Ensure we go to the correct location on the page.
+        tabInfo[selectedIndex].browser
+                              .setAttribute("src", aContentPage);
+        return selectedIndex;
+      }
+    }
+    return -1;
+  },
+
+  openTab: function onTabOpened(aTab, aArgs) {
+    if (!"contentPage" in aArgs)
+      throw("contentPage must be specified");
+
+    // First clone the page and set up the basics.
+    let clone = document.getElementById("siteTab").firstChild.cloneNode(true);
+
+    clone.setAttribute("id", "siteTab" + this.lastBrowserId);
+    clone.setAttribute("collapsed", false);
+
+    aTab.panel.appendChild(clone);
+
+    let engines = clone.getElementsByTagName("menulist")[0];
+    for (var i=0; i<engines.itemCount; i++) {
+      let item = engines.getItemAtIndex(i);
+      if (aArgs.engine == item.label) {
+        engines.selectedIndex = i;
+        break;
+      }
+    }
+
+    // Start setting up the browser.
+    aTab.browser = aTab.panel.getElementsByTagName("browser")[0];
+
+    // As we're opening this tab, showTab may not get called, so set
+    // the type according to if we're opening in background or not.
+    let background = ("background" in aArgs) && aArgs.background;
+    aTab.browser.setAttribute("type", background ? "content-targetable" :
+                                                   "content-primary");
+
+    aTab.browser.setAttribute("id", "siteTabBrowser" + this.lastBrowserId);
+
+    aTab.browser.setAttribute("onclick",
+                              "clickHandler" in aArgs && aArgs.clickHandler ?
+                              aArgs.clickHandler :
+                              "specialTabs.defaultClickHandler(event);");
+
+    // Now initialise the find bar.
+    aTab.findbar = aTab.panel.getElementsByTagName("findbar")[0];
+    aTab.findbar.setAttribute("browserid",
+                              "siteTabBrowser" + this.lastBrowserId);
+
+    // Default to reload being disabled.
+    aTab.reloadEnabled = false;
+
+    // Now set up the listeners.
+    this._setUpTitleListener(aTab);
+    this._setUpCloseWindowListener(aTab);
+    this._setUpBrowserListener(aTab);
+
+    // Now start loading the content.
+    aTab.title = this.loadingTabString;
+
+    aTab.engine = aArgs.engine;
+    aTab.query = aArgs.query;
+
+    // Set up onclick/oncommand listeners.
+    clone.getElementsByClassName("back")[0].addEventListener("click",
+      function (e) {
+        aTab.browser.goBack();
+      }, true);
+    clone.getElementsByClassName("forward")[0].addEventListener("click",
+      function () {
+        aTab.browser.goForward();
+      }, true);
+    clone.getElementsByClassName("menulist")[0].addEventListener("command",
+      function(e) {
+        aTab.engine = e.target.value;
+        opensearch.setSearchEngine(e);
+        /* Note: This also re-sets the search term, as we feel that's the better
+         *       UX.  If you want to use the previous search term, you'll need to
+         *       save it off yourself and call opensearch.setSearchTerm(oldTerm);
+         */
+        opensearch.setSearchTerm(document.getElementById("q").value);
+      }, true);
+    clone.getElementsByTagName("menupopup")[0].addEventListener("popupshowing",
+      function() {
+        let engines = document.getElementById("engines");
+        for (var i = 0; i < engines.itemCount; i++ ) {
+          let item = engines.getItemAtIndex(i);
+          item.setAttribute("checked", "" + (item.value == aTab.engine));
+        }
+      }, true);
+    clone.getElementsByClassName("q")[0].addEventListener("command",
+      function(e) {
+        aTab.query = e.target.value;
+        opensearch.setSearchTerm(e.target.value);
+      }, true);
+
+    aTab.browser.loadURI(aArgs.contentPage);
+
+    this.lastBrowserId++;
+  },
+
+  closeTab: function onTabClosed(aTab) {
+    aTab.browser.removeEventListener("DOMTitleChanged",
+                                     aTab.titleListener, true);
+    aTab.browser.removeEventListener("DOMWindowClose",
+                                     aTab.closeListener, true);
+    aTab.browser.webProgress.removeProgressListener(aTab.filter);
+    aTab.filter.removeProgressListener(aTab.progressListener);
+    aTab.browser.destroy();
+  },
+
+  saveTabState: function onSaveTabState(aTab) {
+    aTab.browser.setAttribute("type", "content-targetable");
+  },
+
+  showTab: function onShowTab(aTab) {
+    aTab.browser.setAttribute("type", "content-primary");
+    document.getElementById("q").value = aTab.query;
+  },
+
+  persistTab: function onPersistTab(aTab) {
+    if (aTab.browser.currentURI.spec == "about:blank")
+      return null;
+
+    let onClick = aTab.browser.getAttribute("onclick");
+
+    return {
+      tabURI: aTab.browser.currentURI.spec,
+      query: aTab.query,
+      engine: aTab.engine,
+      clickHandler: onClick ? onClick : null
+    };
+  },
+
+  restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
+    // Wait a bit to let us finish loading.
+    setTimeout(function() {
+      aTabmail.openTab("siteTab", {contentPage: aPersistedState.tabURI,
+                                   clickHandler: aPersistedState.clickHandler,
+                                   query: aPersistedState.query,
+                                   engine: aPersistedState.engine,
+                                   background: true});
+    }, 2000);
+  },
+
+  supportsCommand: function supportsCommand(aCommand, aTab) {
+    switch (aCommand) {
+      case "cmd_fullZoomReduce":
+      case "cmd_fullZoomEnlarge":
+      case "cmd_fullZoomReset":
+      case "cmd_fullZoomToggle":
+      case "cmd_find":
+      case "cmd_findAgain":
+      case "cmd_findPrevious":
+      case "cmd_printSetup":
+      case "cmd_print":
+      case "button_print":
+      case "cmd_stop":
+      case "cmd_reload":
+      // XXX print preview not currently supported - bug 497994 to implement.
+      // case "cmd_printpreview":
+        return true;
+      default:
+        return false;
+    }
+  },
+
+  isCommandEnabled: function isCommandEnabled(aCommand, aTab) {
+    switch (aCommand) {
+      case "cmd_fullZoomReduce":
+      case "cmd_fullZoomEnlarge":
+      case "cmd_fullZoomReset":
+      case "cmd_fullZoomToggle":
+      case "cmd_find":
+      case "cmd_findAgain":
+      case "cmd_findPrevious":
+      case "cmd_printSetup":
+      case "cmd_print":
+      case "button_print":
+      // XXX print preview not currently supported - bug 497994 to implement.
+      // case "cmd_printpreview":
+        return true;
+      case "cmd_reload":
+        return aTab.reloadEnabled;
+      case "cmd_stop":
+        return aTab.busy;
+      default:
+        return false;
+    }
+  },
+
+  doCommand: function isCommandEnabled(aCommand, aTab) {
+    switch (aCommand) {
+      case "cmd_fullZoomReduce":
+        ZoomManager.reduce();
+        break;
+      case "cmd_fullZoomEnlarge":
+        ZoomManager.enlarge();
+        break;
+      case "cmd_fullZoomReset":
+        ZoomManager.reset();
+        break;
+      case "cmd_fullZoomToggle":
+        ZoomManager.toggleZoom();
+        break;
+      case "cmd_find":
+        aTab.findbar.onFindCommand();
+        break;
+      case "cmd_findAgain":
+        aTab.findbar.onFindAgainCommand(false);
+        break;
+      case "cmd_findPrevious":
+        aTab.findbar.onFindAgainCommand(true);
+        break;
+      case "cmd_printSetup":
+        PrintUtils.showPageSetup();
+        break;
+      case "cmd_print":
+        PrintUtils.print();
+        break;
+      // XXX print preview not currently supported - bug 497994 to implement.
+      //case "cmd_printpreview":
+      //  PrintUtils.printPreview();
+      //  break;
+      case "cmd_stop":
+        aTab.browser.stop();
+        break;
+      case "cmd_reload":
+        aTab.browser.reload();
+        break;
+    }
+  },
+
+  getBrowser: function getBrowser(aTab) {
+    return aTab.browser;
+  },
+
+  // Internal function used to set up the title listener on a content tab.
+  _setUpTitleListener: function setUpTitleListener(aTab) {
+    function onDOMTitleChanged(aEvent) {
+      aTab.title = aTab.browser.contentTitle;
+      document.getElementById("tabmail").setTabTitle(aTab);
+    }
+    // Save the function we'll use as listener so we can remove it later.
+    aTab.titleListener = onDOMTitleChanged;
+    // Add the listener.
+    aTab.browser.addEventListener("DOMTitleChanged",
+                                  aTab.titleListener, true);
+  },
+
+  /**
+   * Internal function used to set up the close window listener on a content
+   * tab.
+   */
+  _setUpCloseWindowListener: function setUpCloseWindowListener(aTab) {
+    function onDOMWindowClose(aEvent) {
+      if (!aEvent.isTrusted)
+        return;
+
+      // Redirect any window.close events to closing the tab. As a 3-pane tab
+      // must be open, we don't need to worry about being the last tab open.
+      document.getElementById("tabmail").closeTab(aTab);
+      aEvent.preventDefault();
+    }
+    // Save the function we'll use as listener so we can remove it later.
+    aTab.closeListener = onDOMWindowClose;
+    // Add the listener.
+    aTab.browser.addEventListener("DOMWindowClose",
+                                  aTab.closeListener, true);
+  },
+
+  _setUpBrowserListener: function setUpBrowserListener(aTab) {
+    let navbar = aTab.browser.parentNode.firstChild;
+
+    function updateNavButtons() {
+      let backButton = navbar.getElementsByClassName("back")[0];
+      backButton.setAttribute("disabled", ! aTab.browser.canGoBack);
+      let forwardButton = navbar.getElementsByClassName("forward")[0];
+      forwardButton.setAttribute("disabled", ! aTab.browser.canGoForward);
+      let q = navbar.getElementsByClassName("q")[0];
+      q.setAttribute("value", aTab.query);
+    };
+
+    function onDOMContentLoaded(aEvent) {
+      try {
+        log("browser", aTab.engine);
+        updateNavButtons();
+        navbar.hidden = (aTab.browser.contentWindow.pageYOffset != 0);
+        setTimeout(function() {
+          // Scroll up a pixel, if we can, to hide the navbar.
+          aTab.browser.contentWindow.scroll(0,1);
+        }, 2000);
+      } catch (e) {
+        logException(e);
+      }
+    };
+    aTab.browser.addEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+
+    aTab.browser.addEventListener("scroll", function onScroll() {
+      navbar.hidden = (aTab.browser.contentWindow.pageYOffset != 0);
+    }, false);
+
+    // browser navigation (front/back) does not cause onDOMContentLoaded,
+    // so we have to use nsIWebProgressListener
+    aTab.browser.addProgressListener(opensearch);
+
+    // Create a filter and hook it up to our browser
+    aTab.filter = Components.classes["@mozilla.org/appshell/component/browser-status-filter;1"]
+                            .createInstance(Components.interfaces.nsIWebProgress);
+
+    // Wire up a progress listener to the filter for this browser
+    aTab.progressListener = new tabProgressListener(aTab, false);
+
+    aTab.filter.addProgressListener(aTab.progressListener, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+    aTab.browser.webProgress.addProgressListener(aTab.filter, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+  }
+}
+
+
 function OpenSearch() {
 
   XPCOMUtils.defineLazyServiceGetter(this, "mPrefs",
@@ -128,7 +484,7 @@ OpenSearch.prototype = {
       var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                             .getService(Components.interfaces.nsIPrefBranch);
 
-      tabmail.registerTabType(this.siteTabType);
+      tabmail.registerTabType(siteTabType);
 
       // Load our search engines into the service.
       for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
@@ -171,14 +527,6 @@ OpenSearch.prototype = {
     }
   },
 
-  showPopup: function() {
-    let engines = document.getElementById("engines");
-    for (var i = 0; i < engines.itemCount; i++ ) {
-      let item = engines.getItemAtIndex(i);
-      item.setAttribute("checked", "" + (item.value == this.engine));
-    }
-  },
-
   initContextPopup: function(event) {
     let menuid = "menu_searchTheWeb";
     if (event.target.id == "mailContext")
@@ -191,7 +539,7 @@ OpenSearch.prototype = {
 
     // Or the previously searched-for text.
     if (!selection || selection.isCollapsed)
-      selection = this.searchterm;
+      selection = this.previousSearchTerm;
 
     if (selection) {
       menuitem.label = "Search the web for: " + selection;
@@ -212,43 +560,21 @@ OpenSearch.prototype = {
   },
 
   setSearchTerm: function(searchterm) {
-    this.searchterm = searchterm;
+    this.previousSearchTerm = searchterm;
     let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-    browser.setAttribute("src", this.getSearchURL(this.searchterm));
+    browser.setAttribute("src", this.getSearchURL(searchterm));
   },
 
   setSearchEngine: function(event) {
     try {
       this.engine = event.target.value;
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-      var tabmail = document.getElementById("tabmail");
-      var context = tabmail._getTabContextForTabbyThing(this.tabthing)
-      var tab = context[2];
-      tab.setAttribute("engine", this.engine);
     } catch (e) {
       logException(e);
     }
   },
 
-  /*
-   * Note: This also re-sets the search term, as we feel that's the better
-   *       UX.  If you want to use the previous search term, you'll need to
-   *       save it off yourself and call opensearch.setSearchTerm(oldTerm);
-   */
   set engine(value) {
     this.mPrefs.setCharPref("opensearch.engine", value);
-    if (this.tabthing) {
-      var tabmail = document.getElementById("tabmail");
-      var context = tabmail._getTabContextForTabbyThing(this.tabthing)
-      var tab = context[2];
-      tab.setAttribute("class", tab.getAttribute("class") + " google");
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-      browser.addEventListener("DOMContentLoaded", this.onDOMContentLoaded, false);
-      tab.setAttribute("engine", this.engine);
-      let menulist = tabmail.getElementsByClassName("menulist")[0];
-      menulist.setAttribute("value", this.engine);
-      this.setSearchTerm(document.getElementById("q").value);
-    }
   },
 
   get engine() {
@@ -287,268 +613,6 @@ OpenSearch.prototype = {
   },
 
 
-/**
-   * A tab to show content pages.
-   */
-  siteTabType: {
-    name: "siteTab",
-    perTabPanel: "vbox",
-    lastBrowserId: 0,
-    get loadingTabString() {
-      delete this.loadingTabString;
-      return this.loadingTabString = document.getElementById("bundle_messenger")
-                                             .getString("loadingTab");
-    },
-
-    modes: {
-      siteTab: {
-        type: "siteTab",
-        maxTabs: 10
-      }
-    },
-    shouldSwitchTo: function onSwitchTo({contentPage: aContentPage}) {
-      let tabmail = document.getElementById("tabmail");
-      let tabInfo = tabmail.tabInfo;
-
-      // Remove any anchors - especially for the about: pages, we just want
-      // to re-use the same tab.
-      let regEx = new RegExp("#.*");
-
-      let contentUrl = aContentPage.replace(regEx, "");
-
-      for (let selectedIndex = 0; selectedIndex < tabInfo.length;
-           ++selectedIndex) {
-        if (tabInfo[selectedIndex].mode.name == this.name &&
-            tabInfo[selectedIndex].browser.currentURI.spec
-                                  .replace(regEx, "") == contentUrl) {
-          // Ensure we go to the correct location on the page.
-          tabInfo[selectedIndex].browser
-                                .setAttribute("src", aContentPage);
-          return selectedIndex;
-        }
-      }
-      return -1;
-    },
-    openTab: function onTabOpened(aTab, aArgs) {
-      if (!"contentPage" in aArgs)
-        throw("contentPage must be specified");
-
-      // First clone the page and set up the basics.
-      let clone = document.getElementById("siteTab").firstChild.cloneNode(true);
-
-      clone.setAttribute("id", "siteTab" + this.lastBrowserId);
-      clone.setAttribute("collapsed", false);
-
-      aTab.panel.appendChild(clone);
-
-      let engines = clone.getElementsByTagName("menulist")[0];
-      for (var i=0; i<engines.itemCount; i++) {
-        let item = engines.getItemAtIndex(i);
-        if (opensearch.engine == item.label) {
-          engines.selectedIndex = i;
-          break;
-        }
-      }
-
-      // Start setting up the browser.
-      aTab.browser = aTab.panel.getElementsByTagName("browser")[0];
-
-      // As we're opening this tab, showTab may not get called, so set
-      // the type according to if we're opening in background or not.
-      let background = ("background" in aArgs) && aArgs.background;
-      aTab.browser.setAttribute("type", background ? "content-targetable" :
-                                                     "content-primary");
-
-      aTab.browser.setAttribute("id", "siteTabBrowser" + this.lastBrowserId);
-
-      aTab.browser.setAttribute("onclick",
-                                "clickHandler" in aArgs && aArgs.clickHandler ?
-                                aArgs.clickHandler :
-                                "specialTabs.defaultClickHandler(event);");
-
-      // Now initialise the find bar.
-      aTab.findbar = aTab.panel.getElementsByTagName("findbar")[0];
-      aTab.findbar.setAttribute("browserid",
-                                "siteTabBrowser" + this.lastBrowserId);
-
-      // Default to reload being disabled.
-      aTab.reloadEnabled = false;
-
-      // Now set up the listeners.
-      this._setUpTitleListener(aTab);
-      this._setUpCloseWindowListener(aTab);
-
-      // Create a filter and hook it up to our browser
-      let filter = Components.classes["@mozilla.org/appshell/component/browser-status-filter;1"]
-                             .createInstance(Components.interfaces.nsIWebProgress);
-      aTab.filter = filter;
-      aTab.browser.webProgress.addProgressListener(filter, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
-
-      // Wire up a progress listener to the filter for this browser
-      aTab.progressListener = new tabProgressListener(aTab, false);
-
-      filter.addProgressListener(aTab.progressListener, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
-
-      // Now start loading the content.
-      aTab.title = this.loadingTabString;
-
-      aTab.browser.loadURI(aArgs.contentPage);
-
-      this.lastBrowserId++;
-    },
-    closeTab: function onTabClosed(aTab) {
-      aTab.browser.removeEventListener("DOMTitleChanged",
-                                       aTab.titleListener, true);
-      aTab.browser.removeEventListener("DOMWindowClose",
-                                       aTab.closeListener, true);
-      aTab.browser.webProgress.removeProgressListener(aTab.filter);
-      aTab.filter.removeProgressListener(aTab.progressListener);
-      aTab.browser.destroy();
-    },
-    saveTabState: function onSaveTabState(aTab) {
-      aTab.browser.setAttribute("type", "content-targetable");
-    },
-    showTab: function onShowTab(aTab) {
-      aTab.browser.setAttribute("type", "content-primary");
-    },
-    persistTab: function onPersistTab(aTab) {
-      if (aTab.browser.currentURI.spec == "about:blank")
-        return null;
-
-      let onClick = aTab.browser.getAttribute("onclick");
-
-      return {
-        tabURI: aTab.browser.currentURI.spec,
-        clickHandler: onClick ? onClick : null
-      };
-    },
-    restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
-      aTabmail.openTab("siteTab", { contentPage: aPersistedState.tabURI,
-                                       clickHandler: aPersistedState.clickHandler,
-                                       background: true } );
-    },
-    supportsCommand: function supportsCommand(aCommand, aTab) {
-      switch (aCommand) {
-        case "cmd_fullZoomReduce":
-        case "cmd_fullZoomEnlarge":
-        case "cmd_fullZoomReset":
-        case "cmd_fullZoomToggle":
-        case "cmd_find":
-        case "cmd_findAgain":
-        case "cmd_findPrevious":
-        case "cmd_printSetup":
-        case "cmd_print":
-        case "button_print":
-        case "cmd_stop":
-        case "cmd_reload":
-        // XXX print preview not currently supported - bug 497994 to implement.
-        // case "cmd_printpreview":
-          return true;
-        default:
-          return false;
-      }
-    },
-    isCommandEnabled: function isCommandEnabled(aCommand, aTab) {
-      switch (aCommand) {
-        case "cmd_fullZoomReduce":
-        case "cmd_fullZoomEnlarge":
-        case "cmd_fullZoomReset":
-        case "cmd_fullZoomToggle":
-        case "cmd_find":
-        case "cmd_findAgain":
-        case "cmd_findPrevious":
-        case "cmd_printSetup":
-        case "cmd_print":
-        case "button_print":
-        // XXX print preview not currently supported - bug 497994 to implement.
-        // case "cmd_printpreview":
-          return true;
-        case "cmd_reload":
-          return aTab.reloadEnabled;
-        case "cmd_stop":
-          return aTab.busy;
-        default:
-          return false;
-      }
-    },
-    doCommand: function isCommandEnabled(aCommand, aTab) {
-      switch (aCommand) {
-        case "cmd_fullZoomReduce":
-          ZoomManager.reduce();
-          break;
-        case "cmd_fullZoomEnlarge":
-          ZoomManager.enlarge();
-          break;
-        case "cmd_fullZoomReset":
-          ZoomManager.reset();
-          break;
-        case "cmd_fullZoomToggle":
-          ZoomManager.toggleZoom();
-          break;
-        case "cmd_find":
-          aTab.findbar.onFindCommand();
-          break;
-        case "cmd_findAgain":
-          aTab.findbar.onFindAgainCommand(false);
-          break;
-        case "cmd_findPrevious":
-          aTab.findbar.onFindAgainCommand(true);
-          break;
-        case "cmd_printSetup":
-          PrintUtils.showPageSetup();
-          break;
-        case "cmd_print":
-          PrintUtils.print();
-          break;
-        // XXX print preview not currently supported - bug 497994 to implement.
-        //case "cmd_printpreview":
-        //  PrintUtils.printPreview();
-        //  break;
-        case "cmd_stop":
-          aTab.browser.stop();
-          break;
-        case "cmd_reload":
-          aTab.browser.reload();
-          break;
-      }
-    },
-    getBrowser: function getBrowser(aTab) {
-      return aTab.browser;
-    },
-    // Internal function used to set up the title listener on a content tab.
-    _setUpTitleListener: function setUpTitleListener(aTab) {
-      function onDOMTitleChanged(aEvent) {
-        aTab.title = aTab.browser.contentTitle;
-        document.getElementById("tabmail").setTabTitle(aTab);
-      }
-      // Save the function we'll use as listener so we can remove it later.
-      aTab.titleListener = onDOMTitleChanged;
-      // Add the listener.
-      aTab.browser.addEventListener("DOMTitleChanged",
-                                    aTab.titleListener, true);
-    },
-    /**
-     * Internal function used to set up the close window listener on a content
-     * tab.
-     */
-    _setUpCloseWindowListener: function setUpCloseWindowListener(aTab) {
-      function onDOMWindowClose(aEvent) {
-        if (!aEvent.isTrusted)
-          return;
-
-        // Redirect any window.close events to closing the tab. As a 3-pane tab
-        // must be open, we don't need to worry about being the last tab open.
-        document.getElementById("tabmail").closeTab(aTab);
-        aEvent.preventDefault();
-      }
-      // Save the function we'll use as listener so we can remove it later.
-      aTab.closeListener = onDOMWindowClose;
-      // Add the listener.
-      aTab.browser.addEventListener("DOMWindowClose",
-                                    aTab.closeListener, true);
-    }
-  },
-
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == "autocomplete-did-enter-text") {
       let selectedIndex = aSubject.popup.selectedIndex;
@@ -582,12 +646,10 @@ OpenSearch.prototype = {
           logException(e);
         }
       }
-      if (sync) {
+      if (sync)
         f();
-      }
-      else {
+      else
         opensearch.timeout = window.setTimeout(f, 100);
-      }
     } catch (e) {
       logException(e);
     }
@@ -596,37 +658,15 @@ OpenSearch.prototype = {
   doSearch: function(whereFrom, searchterm) {
     try {
       log(whereFrom, this.engine);
-      this.searchterm = searchterm;
-      let options = {background : false ,
-                     contentPage : this.getSearchURL(searchterm),
+      this.previousSearchTerm = searchterm;
+      let options = {background: false ,
+                     contentPage: this.getSearchURL(searchterm),
+                     query: searchterm,
+                     engine: this.engine,
                      clickHandler: "opensearch.siteClickHandler(event)"
                     };
       var tabmail = document.getElementById("tabmail");
-      var tabthing = tabmail.openTab("siteTab", options);
-      this.tabthing = tabthing;
-      var context = tabmail._getTabContextForTabbyThing(tabthing)
-      var tab = context[2];
-      tab.setAttribute("class", tab.getAttribute("class") + " google");
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-      browser.addEventListener("DOMContentLoaded", this.onDOMContentLoaded, false);
-      browser.addEventListener("scroll", this.onScroll, false);
-      tab.setAttribute("engine", this.engine);
-      let menulist = tabmail.getElementsByClassName("menulist")[0];
-      menulist.setAttribute("value", this.engine);
-      let outerbox = browser.parentNode;
-      let backButton = outerbox.getElementsByClassName("back")[0];
-      var backFunc = function (e) {
-        document.getElementById("tabmail").getBrowserForSelectedTab().goBack();
-      };
-      backButton.addEventListener("click", backFunc, true);
-      let forwardButton = outerbox.getElementsByClassName("forward")[0];
-      var forwardFunc = function () {
-        document.getElementById("tabmail").getBrowserForSelectedTab().goForward();
-      };
-      forwardButton.addEventListener("click", forwardFunc, true);
-
-      // browser navigation (front/back) does not cause onDOMContentLoaded, so we have to use nsIWebProgressListener
-      browser.addProgressListener(this);
+      tabmail.openTab("siteTab", options);
     } catch (e) {
       logException(e);
     }
@@ -638,50 +678,12 @@ OpenSearch.prototype = {
         ]),
 
   onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
-  onLocationChange: function(aProgress, aRequest, aURI)
-  {
-    this.updateNavButtons();
-  },
-
-  updateNavButtons: function(uristring) {
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-      let outerbox = browser.parentNode;
-      let hbox = outerbox.firstChild;
-      let backButton = hbox.getElementsByClassName("back")[0];
-      backButton.setAttribute("disabled", ! browser.canGoBack);
-      let forwardButton = hbox.getElementsByClassName("forward")[0];
-      forwardButton.setAttribute("disabled", ! browser.canGoForward);
-      let q = hbox.getElementsByClassName("q")[0];
-      q.setAttribute("value", this.searchterm);
-  },
+  onLocationChange: function(aProgress, aRequest, aURI) {},
 
   // For definitions of the remaining functions see related documentation
   onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
   onSecurityChange: function(aWebProgress, aRequest, aState) { },
-
-  onScroll: function() {
-    let contentWindow = document.getElementById("tabmail")
-                                .getBrowserForSelectedTab().contentWindow;
-    document.getElementById("navbar").hidden = (contentWindow.pageYOffset != 0);
-  },
-
-  onDOMContentLoaded: function() {
-    try {
-      log("browser", opensearch.engine);
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-      opensearch.updateNavButtons();
-      let navbar = document.getElementById("navbar");
-      navbar.hidden = false;
-      setTimeout(function() {
-        // Scroll up a pixel, if we can, to hide the navbar.
-        document.getElementById("tabmail").getBrowserForSelectedTab()
-                                          .contentWindow.scroll(0,1);
-      }, 2000);
-    } catch (e) {
-      logException(e);
-    }
-  },
 
   goBack: function() {
     try {
