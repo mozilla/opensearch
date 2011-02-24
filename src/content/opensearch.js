@@ -215,11 +215,10 @@ var siteTabType = {
          *       UX.  If you want to use the previous search term, you'll need to
          *       save it off yourself and call opensearch.setSearchTerm(oldTerm);
          */
-        opensearch.setSearchTerm(document.getElementById("q").value);
+        opensearch.setSearchTerm(clone.getElementsByClassName("q")[0].value);
       }, true);
     clone.getElementsByTagName("menupopup")[0].addEventListener("popupshowing",
       function() {
-        let engines = document.getElementById("engines");
         for (var i = 0; i < engines.itemCount; i++ ) {
           let item = engines.getItemAtIndex(i);
           item.setAttribute("checked", "" + (item.value == aTab.engine));
