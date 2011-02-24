@@ -31,73 +31,96 @@ tab[type="siteTab"][engine="wikipedia"] .tab-icon-image {
   list-style-image: url('http://www.wikipedia.org/favicon.ico');
 }
 
-
-.url {
-  font-size: 120%;
-  color: grey;
-}
-
-.mininav.hidden {
-  display:none;
-}
-
 hbox.mininav {
   background: #ddd;
-  border-bottom: 1px solid grey;
-  -moz-box-align: baseline;
-  color: white;
-
+  border-bottom: 1px solid #8c8c8c;
+  border-top: 1px solid #8c8c8c;
+  background-image: -moz-linear-gradient(top center, #f9f9f9 1px, #dfdfdf 1px, #ccc);
+  -moz-box-align: center;
+  height: 35px;
 }
 
-.mininav .url {
-  border: 1px inset #444;
+.mininav .q {
+  -moz-appearance: none;
+  border: 1px solid #b7b7b7;
   padding: 3px;
-  background: #ccc;
-  color: #444;
+  background: #fff;
+  color: #2a2a2a;
+  font-size: large;
+  -moz-border-radius: 5px;
+  -moz-box-shadow: 0 1px 1px #f2f2f2 inset;
+}
+
+.mininav button image {
+  display: none;
 }
 
 .mininav button {
   -moz-appearance: none;
-  -moz-box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.75) inset;
-  background-image: -moz-linear-gradient(center top , #EEEEEE 0%, #EEEEEE 50%, #E1E1E1 50%, #E1E1E1 100%);
-  border-color: #AAAAAA #AAAAAA #888888;
-  border-style: solid;
-  border-width: 1px;
-  color: #222222;
+  border: 1px solid transparent;
+  color: #000;
   cursor: pointer;
   font-weight: bold;
-  font-size: larger;
-  padding: 2px 4px;
-  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.75);
+  font-size: x-large;
+  text-shadow: 0px 1px 0 #f2f2f2;
   white-space: nowrap;
   font-weight: bold;
   vertical-align: middle;
+  margin: 2px 0 2px 4px;
+  min-width: 0;
+  -moz-border-radius: 3px;
 }
-
-.back {
-  -moz-border-radius: 12px 3px 3px 12px;
-}
-
-.forward {
-  -moz-border-radius: 3px 12px 12px 3px;
+.mininav button[disabled='true'] {
+  color: #707070;
+  cursor: default;
+  text-shadow: 0px 1px 0 #e0e0e0;
 }
 
 .mininav button:hover {
-  background-image: -moz-linear-gradient(center top , #fafafa 0%, #fafafa 50%, #eee 50%, #eee 100%);
+  background-image: -moz-linear-gradient(center top , #ebebeb 0%, #d1d1d1 100%);
+  -moz-box-shadow:0 0 1px #eee inset, 0 1px 0 #d6d6d6;
+  border-color: #bbb;
+}
+.mininav button[disabled="true"]:hover {
+  background-image: none;
+  border-color: transparent;
+  -moz-box-shadow: none;
 }
 
 .mininav button:active {
-  background-image: -moz-linear-gradient(center top , #ddd 0%, #ddd 100%);
+  background-image: -moz-linear-gradient(center top , #7c7c7c 0%, #919191 100%);
+  border-color: #767676;
+  -moz-box-shadow: none;
 }
 
-.mininav button[disabled='true'] {
-  color: #666;
-  background-image: -moz-linear-gradient(center top , #ddd 0%, #ddd 100%);
-  font-weight: normal;
-  cursor: default;
-}
 .mininav button[disabled="true"]:hover label {
   text-decoration: none;
 }
-.mininav button[disabled="true"]:hover {
+
+.mininav button.back {
+  padding: 0 8px 4px 4px;
+}
+
+.mininav button.forward {
+  padding: 0 6px 4px 6px;
+}
+
+.mininav .menulist {
+  -moz-appearance: none;
+  cursor: pointer;
+}
+
+.mininav .menulist .menulist-dropmarker {
+  -moz-appearance: menulist-button;
+  display: -moz-box;
+}
+
+.mininav .go {
+  background-image: -moz-linear-gradient(center top , #eee 0%, #ddd 100%);
+  -moz-box-shadow: 0 1px 0 #ECECEC;
+  padding: 2px 6px;
+  font-weight: normal;
+  font-size: medium;
+  border-color: #bbb;
+  margin-right: 8px;
 }

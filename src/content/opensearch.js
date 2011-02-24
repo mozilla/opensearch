@@ -21,7 +21,7 @@
  * 1.1 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
  * http://www.mozilla.org/MPL/
- * 
+ *
  * Software distributed under the License is distributed on an "AS IS" basis,
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
@@ -47,12 +47,15 @@
  * and other provisions required by the GPL or the LGPL. If you do not delete
  * the provisions above, a recipient may use your version of this file under
  * the terms of any one of the MPL, the GPL or the LGPL.
- * 
+ *
  * ***** END LICENSE BLOCK ***** */
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource:///modules/errUtils.js");
 var EXTPREFNAME = "extension.opensearch.data";
 
+var searchService = Components.classes["@mozilla.org/browser/search-service;1"]
+                              .getService(Components.interfaces
+                                                    .nsIBrowserSearchService);
 
 function ResultRowSingle(term) {
   this.term = term;
@@ -70,21 +73,9 @@ function WebSearchCompleter() {
 
 WebSearchCompleter.prototype = {
   complete: function WebSearchCompleter_complete(aResult, aString) {
-    if (aString.length < 3) {
-      // In CJK, first name or last name is sometime used as 1 character only.
-      // So we allow autocompleted search even if 1 character.
-      //
-      // [U+3041 - U+9FFF ... Full-width Katakana, Hiragana
-      //                      and CJK Ideograph
-      // [U+AC00 - U+D7FF ... Hangul
-      // [U+F900 - U+FFDC ... CJK compatibility ideograph
-      if (!aString.match(/[\u3041-\u9fff\uac00-\ud7ff\uf900-\uffdc]/))
-        return false;
-    }
-
-    let rows = [new ResultRowSingle(aString)];
-    aResult.addRows(rows);
-    return true;
+    aResult.addRows([new ResultRowSingle(aString)]);
+    // We have nothing pending.
+    return false;
   },
   onItemsAdded: function(aItems, aCollection) {
   },
@@ -94,6 +85,16 @@ WebSearchCompleter.prototype = {
   },
   onQueryCompleted: function(aCollection) {
   }
+};
+
+function log(whereFrom, engine) {
+  let url = "https://opensearch-live.mozillamessaging.com/search" +
+        "?provider=" + engine +
+        "&from=" + whereFrom;
+  let req = new XMLHttpRequest();
+  req.open('GET', url);
+  req.channel.loadFlags |= Components.interfaces.nsIRequest.LOAD_BYPASS_CACHE;
+  req.send(null);
 };
 
 
@@ -115,84 +116,171 @@ OpenSearch.prototype = {
     try {
       this.mOS.addObserver(opensearch, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
-      this.glodaCompleter.completers.push(new WebSearchCompleter());
+
+      // Add us as the second completer.
+      this.glodaCompleter.completers.unshift(null);
+      this.glodaCompleter.completers[0] = this.glodaCompleter.completers[1];
+      this.glodaCompleter.completers[1] = new WebSearchCompleter();
+
       this.engine = this.engine; // load from prefs
-      let tabmail = document.getElementById('tabmail');
-  
+      let tabmail = document.getElementById("tabmail");
+
       var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                             .getService(Components.interfaces.nsIPrefBranch);
-  
+
       tabmail.registerTabType(this.siteTabType);
+
+      // Load our search engines into the service.
+      for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
+                                 "answers", "creativecommons", "eBay",
+                                 "bing", "wikipedia"]) {
+        searchService.addEngine(
+            "chrome://opensearch/locale/searchplugins/" + provider + ".xml",
+            Components.interfaces.nsISearchEngine.DATA_XML,
+            "", false);
+      }
+      // Wait for the service to finish loading the engines.
+      setTimeout(this.finishLoading, 2000);
+
     } catch (e) {
       logException(e);
     }
+  },
+
+  finishLoading: function() {
+    try {
+      // Put the engines in the correct order.
+      for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
+                               "Creative Commons", "Answers.com", "Amazon.com",
+                               "Twitter Search", "Yahoo", "Google"]) {
+        let engineObj = searchService.getEngineByName(engine);
+        if (engineObj)
+          searchService.moveEngine(engineObj, 0);
+      }
+
+      // Load the engines from the service into our menu.
+      let engines = document.getElementById("engines");
+      for each (let engine in searchService.getVisibleEngines()) {
+        let item = engines.appendItem(engine.name, engine.name);
+        item.setAttribute("image", engine.iconURI.spec);
+        item.setAttribute("type", "radio");
+        item.setAttribute("checked", "" + (this.engine == engine.name));
+      }
+    } catch (e) {
+      logException(e);
+    }
+  },
+
+  showPopup: function() {
+    let engines = document.getElementById("engines");
+    for (var i = 0; i < engines.itemCount; i++ ) {
+      let item = engines.getItemAtIndex(i);
+      item.setAttribute("checked", "" + (item.value == this.engine));
+    }
+  },
+
+  initContextPopup: function(event) {
+    let menuid = "menu_searchTheWeb";
+    if (event.target.id == "mailContext")
+      menuid = "mailContext_searchTheWeb";
+
+    let menuitem = document.getElementById(menuid);
+
+    // Change the label to include the selected text.
+    let selection = document.commandDispatcher.focusedWindow.getSelection();
+
+    // Or the previously searched-for text.
+    if (!selection || selection.isCollapsed)
+      selection = this.searchterm;
+
+    if (selection) {
+      menuitem.label = "Search the web for: " + selection;
+      menuitem.value = "" + selection;
+      menuitem.disabled = false;
+    }
+    else {
+      // Or just disable the item.
+      menuitem.label = "Search the web…";
+      menuitem.value = "";
+      menuitem.disabled = true;
+    }
+
+    if (menuid == "menu_searchTheWeb")
+      InitMessageMenu();
+    else
+      return fillMailContextMenu(event);
+  },
+
+  setSearchTerm: function(searchterm) {
+    this.searchterm = searchterm;
+    let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+    browser.setAttribute("src", this.getSearchURL(this.searchterm));
   },
 
   setSearchEngine: function(event) {
     try {
-      engine = event.target.value;
       this.engine = event.target.value;
-      this.mPrefs.setCharPref('opensearch.engine', engine);
-      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-      var tabmail = document.getElementById('tabmail');
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      var tabmail = document.getElementById("tabmail");
       var context = tabmail._getTabContextForTabbyThing(this.tabthing)
       var tab = context[2];
-      tab.setAttribute('engine', engine);
-      browser.setAttribute("src", this.getSearchURL(this.searchterm));
-      this.engine = engine;
+      tab.setAttribute("engine", this.engine);
     } catch (e) {
       logException(e);
     }
   },
-  
+
+  /*
+   * Note: This also re-sets the search term, as we feel that's the better
+   *       UX.  If you want to use the previous search term, you'll need to
+   *       save it off yourself and call opensearch.setSearchTerm(oldTerm);
+   */
   set engine(value) {
     this.mPrefs.setCharPref("opensearch.engine", value);
     if (this.tabthing) {
-      var tabmail = document.getElementById('tabmail');
+      var tabmail = document.getElementById("tabmail");
       var context = tabmail._getTabContextForTabbyThing(this.tabthing)
       var tab = context[2];
-      tab.setAttribute('class', tab.getAttribute('class') + ' google');
-      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-      browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
-      tab.setAttribute('engine', this.engine);
+      tab.setAttribute("class", tab.getAttribute("class") + " google");
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      browser.addEventListener("DOMContentLoaded", this.onDOMContentLoaded, false);
+      tab.setAttribute("engine", this.engine);
       let menulist = tabmail.getElementsByClassName("menulist")[0];
       menulist.setAttribute("value", this.engine);
-      browser.setAttribute("src", this.getSearchURL(this.searchterm));
+      this.setSearchTerm(document.getElementById("q").value);
     }
   },
-  
+
   get engine() {
     try {
       return this.mPrefs.getCharPref("opensearch.engine");
     } catch (e) {
-      return 'google';
+      return "google";
     }
   },
-  
+
   getSearchURL: function(searchterm) {
-    switch (this.engine) {
-      case 'yahoo':
-        return "http://search.yahoo.com/search?p=" + encodeURI(searchterm);
-      case 'google':
-        return "http://www.google.com/search?q=" + encodeURI(searchterm);
-      case 'bing':
-        return "http://www.bing.com/search?q=" + encodeURI(searchterm);
-      case 'wikpedia':
-        return "http://en.wikipedia.org/wiki/Special:Search?search=" + encodeURI(searchterm);
+    try {
+      var engine = searchService.getEngineByName(this.engine);
+      var submission = engine.getSubmission(searchterm);
+      return submission.uri.spec;
+    } catch (e) {
+      logException(e);
     }
-    return '';
+    return "";
   },
 
   getURLPrefixesForEngine: function() {
     switch (this.engine) {
-      case 'yahoo':
-        return ['http://search.yahoo.com', 'http://www.yahoo.com'];
-      case 'google':
-        return ['http://www.google.com/search', 'http://google.com/search', 'http://login.google.com'];
-      case 'bing':
-        return ['http://www.bing.com'];
-      case 'wikipedia':
-        return ['http://en.wikipedia.org'];
+      case "Yahoo":
+        return ["http://search.yahoo.com", "http://www.yahoo.com"];
+      case "Google":
+        return ["http://www.google.com", "http://www.google.ca", "http://login.google.com"];
+      case "Bing":
+        return ["http://www.bing.com"];
+      case "Wikipedia (en)":
+        return ["http://en.wikipedia.org"];
+      // todo: Add Amazon.com, Answers.com, Creative Commons, and eBay.
     }
   },
 
@@ -248,6 +336,12 @@ OpenSearch.prototype = {
 
       clone.setAttribute("id", "siteTab" + this.lastBrowserId);
       clone.setAttribute("collapsed", false);
+
+      let engines = clone.getElementsByTagName("menulist")[0];
+      for (var i=0; i<engines.itemCount; i++) {
+        let item = engines.getItemAt(i);
+        item.setAttribute("checked", "" + (this.engine == item.label));
+      }
 
       aTab.panel.appendChild(clone);
 
@@ -451,14 +545,14 @@ OpenSearch.prototype = {
   },
 
   observe: function(aSubject, aTopic, aData) {
-    if (aTopic == 'autocomplete-did-enter-text') {
+    if (aTopic == "autocomplete-did-enter-text") {
       let selectedIndex = aSubject.popup.selectedIndex;
       let curResult = this.glodaCompleter.curResult;
       if (! curResult)
         return; // autocomplete didn't even finish.
       let row = curResult.getObjectAt(selectedIndex);
-      if (row.typeForStyle != 'websearch') return;
-      opensearch.doSearch(aSubject.state.string);
+      if (row.typeForStyle != "websearch") return;
+      opensearch.doSearch('gloda', aSubject.state.string);
     }
   },
 
@@ -471,26 +565,19 @@ OpenSearch.prototype = {
 
   updateHeight: function(sync) {
     try {
-      dump('in updateHeight\n');
       window.clearTimeout(opensearch.timeout);
       let f = function () {
-        dump('timedout\n');
         try {
           let browser = opensearch.tabthing.browser;
           let outerbox = browser.parentNode;
           let hbox = outerbox.firstChild;
-          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
-          outerbox.height = browser.contentDocument.height + hbox.clientHeight + 'px';
-          //browser.height = browser.contentDocument.height +hbox.clientHeight + 'px';
-          //browser.minHeight = browser.contentDocument.height +hbox.clientHeight + 'px';
-          dump("browser.contentDocument.height = " + browser.contentDocument.height + '\n');
+          outerbox.height = browser.contentDocument.height + hbox.clientHeight + "px";
           window.clearTimeout(opensearch.timeout);
         } catch (e) {
           logException(e);
         }
       }
       if (sync) {
-        dump('doing it sync\n');
         f();
       }
       else {
@@ -500,34 +587,36 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-  
-  doSearch: function(searchterm) {
+
+  doSearch: function(whereFrom, searchterm) {
     try {
+      log(whereFrom, this.engine);
       this.searchterm = searchterm;
       let options = {background : false ,
                      contentPage : this.getSearchURL(searchterm),
                      clickHandler: "opensearch.siteClickHandler(event)"
                     };
-      var tabmail = document.getElementById('tabmail');
+      var tabmail = document.getElementById("tabmail");
       var tabthing = tabmail.openTab("siteTab", options);
       this.tabthing = tabthing;
       var context = tabmail._getTabContextForTabbyThing(tabthing)
       var tab = context[2];
-      tab.setAttribute('class', tab.getAttribute('class') + ' google');
-      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-      browser.addEventListener('DOMContentLoaded', this.onDOMContentLoaded, false);
-      tab.setAttribute('engine', this.engine);
+      tab.setAttribute("class", tab.getAttribute("class") + " google");
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      browser.addEventListener("DOMContentLoaded", this.onDOMContentLoaded, false);
+      browser.addEventListener("scroll", this.onScroll, false);
+      tab.setAttribute("engine", this.engine);
       let menulist = tabmail.getElementsByClassName("menulist")[0];
       menulist.setAttribute("value", this.engine);
       let outerbox = browser.parentNode;
-      let backButton = outerbox.getElementsByClassName('back')[0];
+      let backButton = outerbox.getElementsByClassName("back")[0];
       var backFunc = function (e) {
-        document.getElementById('tabmail').getBrowserForSelectedTab().goBack();
+        document.getElementById("tabmail").getBrowserForSelectedTab().goBack();
       };
       backButton.addEventListener("click", backFunc, true);
-      let forwardButton = outerbox.getElementsByClassName('forward')[0];
+      let forwardButton = outerbox.getElementsByClassName("forward")[0];
       var forwardFunc = function () {
-        document.getElementById('tabmail').getBrowserForSelectedTab().goForward();
+        document.getElementById("tabmail").getBrowserForSelectedTab().goForward();
       };
       forwardButton.addEventListener("click", forwardFunc, true);
 
@@ -542,52 +631,56 @@ OpenSearch.prototype = {
         Components.interfaces.nsISupportsWeakReference,
         Components.interfaces.nsISupports
         ]),
-  
-  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},  
-  onLocationChange: function(aProgress, aRequest, aURI)  
+
+  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
+  onLocationChange: function(aProgress, aRequest, aURI)
   {
-    this.updateNavButtons(aURI.spec);
+    this.updateNavButtons();
   },
-  
+
   updateNavButtons: function(uristring) {
-      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       let outerbox = browser.parentNode;
       let hbox = outerbox.firstChild;
-      let backButton = hbox.getElementsByClassName('back')[0];
+      let backButton = hbox.getElementsByClassName("back")[0];
       backButton.setAttribute("disabled", ! browser.canGoBack);
-      let forwardButton = hbox.getElementsByClassName('forward')[0];
+      let forwardButton = hbox.getElementsByClassName("forward")[0];
       forwardButton.setAttribute("disabled", ! browser.canGoForward);
-      let url = hbox.getElementsByClassName('url')[0];
-      url.setAttribute("value", uristring);
+      let q = hbox.getElementsByClassName("q")[0];
+      q.setAttribute("value", this.searchterm);
   },
-  
-  // For definitions of the remaining functions see related documentation  
+
+  // For definitions of the remaining functions see related documentation
   onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
   onSecurityChange: function(aWebProgress, aRequest, aState) { },
 
+  onScroll: function() {
+    let contentWindow = document.getElementById("tabmail")
+                                .getBrowserForSelectedTab().contentWindow;
+    document.getElementById("navbar").hidden = (contentWindow.pageYOffset != 0);
+  },
+
   onDOMContentLoaded: function() {
     try {
-      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
-      opensearch.updateNavButtons(browser.contentDocument.location);
-      let outerbox = browser.parentNode;
-      let hbox = outerbox.firstChild;
-      hbox.setAttribute('class', 'mininav'); // remove 'hidden';
-      // XXX something's not right when we go from a short page through links to a longer page
-      outerbox.height = browser.contentDocument.height  + hbox.clientHeight + 'px';
-      browser.height = browser.contentDocument.height +hbox.clientHeight + 'px';
-      browser.minHeight = browser.contentDocument.height +hbox.clientHeight + 'px';
-      outerbox.style.overflowY = "auto";
-      outerbox.scrollTop = hbox.clientHeight + 1;  // for border - XXX fix.
-      browser.style.overflow = "hidden";
+      log("browser", opensearch.engine);
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      opensearch.updateNavButtons();
+      let navbar = document.getElementById("navbar");
+      navbar.hidden = false;
+      setTimeout(function() {
+        // Scroll up a pixel, if we can, to hide the navbar.
+        document.getElementById("tabmail").getBrowserForSelectedTab()
+                                          .contentWindow.scroll(0,1);
+      }, 2000);
     } catch (e) {
       logException(e);
     }
   },
-  
+
   goBack: function() {
     try {
-      let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
       browser.goBack();
     } catch (e) {
       logException(e);
@@ -595,7 +688,7 @@ OpenSearch.prototype = {
   },
 
   goForward: function() {
-    let browser = document.getElementById('tabmail').getBrowserForSelectedTab();
+    let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
     browser.goForward();
   },
 
@@ -607,7 +700,7 @@ OpenSearch.prototype = {
 
     let href = hRefForClickEvent(aEvent, true);
     if (href) {
-      dump("href = " + href + '\n');
+      dump("href = " + href + "\n");
       let uri = makeURI(href);
       if (!this._protocolSvc.isExposedProtocol(uri.scheme) ||
           uri.schemeIs("http") || uri.schemeIs("https")) {
@@ -617,7 +710,7 @@ OpenSearch.prototype = {
         var inscope = false;
         for (var i =0; i < domains.length; i++) {
           if (uri.spec.indexOf(domains[i]) == 0) {
-            dump('in scope, as ' + domains[i] + ' == ' + uri.host + '\n');
+            dump("in scope, as " + domains[i] + " == " + uri.host + "\n");
             inscope = true;
             break;
           }
