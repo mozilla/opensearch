@@ -607,8 +607,14 @@ OpenSearch.prototype = {
         return ["http://www.bing.com"];
       case "Wikipedia (en)":
         return ["http://en.wikipedia.org"];
-      // todo: Add Amazon.com, Answers.com, Creative Commons, and eBay.
+      case "Amazon.com":
+        return ["http://www.amazon.com/gp/search/"];
+      case "Creative Commons":
+        return ["http://search.creativecommons.org"];
+      // todo: Answers.com, Creative Commons, and eBay.
     }
+    // By default open everything in the default browser.
+    return [];
   },
 
 
@@ -619,7 +625,8 @@ OpenSearch.prototype = {
       if (! curResult)
         return; // autocomplete didn't even finish.
       let row = curResult.getObjectAt(selectedIndex);
-      if (row.typeForStyle != "websearch") return;
+      if (!row || (row.typeForStyle != "websearch"))
+        return; // It's not our row.
       opensearch.doSearch('gloda', aSubject.state.string);
     }
   },
