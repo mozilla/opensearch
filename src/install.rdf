@@ -4,7 +4,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>opensearch@mozillamessaging.com</em:id>
     <em:name>OpenSearch</em:name>
-    <em:version>1.0</em:version>
+    <em:version>1.1</em:version>
     <em:creator>David Ascher</em:creator>
     <em:contributor>Blake Winton</em:contributor>
     <em:contributor>Bryan Clark</em:contributor>
