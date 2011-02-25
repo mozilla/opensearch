@@ -215,11 +215,10 @@ var siteTabType = {
          *       UX.  If you want to use the previous search term, you'll need to
          *       save it off yourself and call opensearch.setSearchTerm(oldTerm);
          */
-        opensearch.setSearchTerm(document.getElementById("q").value);
+        opensearch.setSearchTerm(clone.getElementsByClassName("q")[0].value);
       }, true);
     clone.getElementsByTagName("menupopup")[0].addEventListener("popupshowing",
       function() {
-        let engines = document.getElementById("engines");
         for (var i = 0; i < engines.itemCount; i++ ) {
           let item = engines.getItemAtIndex(i);
           item.setAttribute("checked", "" + (item.value == aTab.engine));
@@ -608,8 +607,14 @@ OpenSearch.prototype = {
         return ["http://www.bing.com"];
       case "Wikipedia (en)":
         return ["http://en.wikipedia.org"];
-      // todo: Add Amazon.com, Answers.com, Creative Commons, and eBay.
+      case "Amazon.com":
+        return ["http://www.amazon.com/gp/search/"];
+      case "Creative Commons":
+        return ["http://search.creativecommons.org"];
+      // todo: Answers.com, Creative Commons, and eBay.
     }
+    // By default open everything in the default browser.
+    return [];
   },
 
 
@@ -620,7 +625,8 @@ OpenSearch.prototype = {
       if (! curResult)
         return; // autocomplete didn't even finish.
       let row = curResult.getObjectAt(selectedIndex);
-      if (row.typeForStyle != "websearch") return;
+      if (!row || (row.typeForStyle != "websearch"))
+        return; // It's not our row.
       opensearch.doSearch('gloda', aSubject.state.string);
     }
   },
