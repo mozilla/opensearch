@@ -242,7 +242,6 @@ var siteTabType = {
 
   showTab: function onShowTab(aTab) {
     aTab.browser.setAttribute("type", "content-primary");
-    document.getElementById("q").value = aTab.query;
   },
 
   persistTab: function onPersistTab(aTab) {
