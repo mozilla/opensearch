@@ -155,7 +155,7 @@ var siteTabType = {
 
     aTab.panel.appendChild(clone);
 
-    let engines = clone.getElementsByTagName("menulist")[0];
+    let engines = clone.getElementsByClassName("engines")[0];
     for (var i=0; i<engines.itemCount; i++) {
       let item = engines.getItemAtIndex(i);
       if (aArgs.engine == item.label) {
@@ -208,17 +208,10 @@ var siteTabType = {
       function () {
         aTab.browser.goForward();
       }, true);
-    clone.getElementsByClassName("menulist")[0].addEventListener("command",
+    clone.getElementsByClassName("engines")[0].addEventListener("command",
       function(e) {
         aTab.engine = e.target.value;
         opensearch.setSearchEngine(e);
-      }, true);
-    clone.getElementsByTagName("menupopup")[0].addEventListener("popupshowing",
-      function() {
-        for (var i = 0; i < engines.itemCount; i++ ) {
-          let item = engines.getItemAtIndex(i);
-          item.setAttribute("checked", "" + (item.value == aTab.engine));
-        }
       }, true);
 
     aTab.browser.loadURI(aArgs.contentPage);
@@ -485,13 +478,14 @@ OpenSearch.prototype = {
           Services.search.moveEngine(engineObj, 0);
       }
 
-      // Load the engines from the service into our menu.
-      let engines = document.getElementById("engines");
+      // Load the engines from the service into our radio buttons.
+      let radios = document.getElementById("radios");
       for each (let engine in Services.search.getVisibleEngines()) {
-        let item = engines.appendItem(engine.name, engine.name);
-        item.setAttribute("image", engine.iconURI.spec);
-        item.setAttribute("type", "radio");
-        item.setAttribute("checked", "" + (this.engine == engine.name));
+        let radio = radios.appendItem(engine.name, engine.name);
+        radio.setAttribute("src", engine.iconURI.spec);
+        if (this.engine == engine.name) {
+          radios.selectedItem(radio);
+        }
       }
     } catch (e) {
       logException(e);

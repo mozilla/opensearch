@@ -84,31 +84,45 @@ vbox.mininav {
   padding: 0 6px 4px 6px;
 }
 
-.mininav .menulist {
+#navbuttons {
+  border-bottom: 1px solid #bbb;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+#radios radio {
   -moz-appearance: none;
   cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
 }
 
-.mininav .menulist .menulist-label {
+#radios radio[selected] {
+  background-image: -moz-linear-gradient(center top , #a1a1a1 0%, #d1d1d1 100%);
+  border-color: #a1a1a1;
+}
+
+#radios radio:hover:not([selected]) {
+  background-image: -moz-linear-gradient(center top , #ebebeb 0%, #d1d1d1 100%);
+  box-shadow:0 0 1px #eee inset, 0 1px 0 #d6d6d6;
+  border-color: #bbb;
+}
+
+#radios radio:active {
+  background-image: -moz-linear-gradient(center top , #7c7c7c 0%, #919191 100%);
+  border-color: #767676;
+  box-shadow: none;
+}
+
+#radios radio .radio-icon {
+  max-width: 24px;
+  max-height: 24px;
+  padding: 2px;
+}
+
+#radios radio .radio-check,
+#radios radio .radio-label {
   display: none;
-}
-
-.mininav .menulist .menulist-dropmarker {
-  -moz-appearance: none;
-  display: none;
-}
-
-.mininav .menulist menupopup,
-.mininav .menulist .popup-internal-box{
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-}
-
-.mininav .menulist menupopup menuitem label {
-  display: none;
-}
-
-.mininav .menulist menupopup menuitem {
-  padding-right: 0;
 }

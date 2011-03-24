@@ -52,11 +52,7 @@
             <button class="back" label="&#0171;"/>
             <button class="forward" label="&#187;"/>
           </vbox>
-          <menulist id="engines" class="menulist" sizetopopup="always"
-                    oncommand="opensearch.setSearchEngine(event)">
-            <menupopup onpopupshowing="opensearch.showPopup()">
-            </menupopup>
-          </menulist>
+          <radiogroup class="engines" id="radios"></radiogroup>
         </vbox>
         <browser id="dummycontentbrowser" type="content-targetable" flex="1"
                  disablehistory="true" autocompletepopup="PopupAutoComplete"
