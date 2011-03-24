@@ -409,11 +409,6 @@ var siteTabType = {
       try {
         log("browser", aTab.engine);
         updateNavButtons();
-        navbar.hidden = (aTab.browser.contentWindow.pageYOffset != 0);
-        setTimeout(function() {
-          // Scroll up a pixel, if we can, to hide the navbar.
-          aTab.browser.contentWindow.scroll(0,1);
-        }, 2000);
       } catch (e) {
         logException(e);
       }
