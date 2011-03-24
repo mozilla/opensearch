@@ -434,13 +434,9 @@ var siteTabType = {
 
 function OpenSearch() {
 
-  XPCOMUtils.defineLazyServiceGetter(this, "mPrefs",
-                                     "@mozilla.org/preferences-service;1",
-                                     "nsIPrefBranch2");
-
-  XPCOMUtils.defineLazyServiceGetter(this, "mOS",
-                                     "@mozilla.org/observer-service;1",
-                                     "nsIObserverService");
+  XPCOMUtils.defineLazyServiceGetter(this, "protocol",
+                                     "@mozilla.org/uriloader/external-protocol-service;1",
+                                     "nsIExternalProtocolService");
 
 }
 
@@ -448,7 +444,7 @@ OpenSearch.prototype = {
 
   onLoad: function(evt) {
     try {
-      this.mOS.addObserver(opensearch, "autocomplete-did-enter-text", false);
+      Services.obs.addObserver(opensearch, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
 
       // Add us as the second completer.
@@ -458,9 +454,6 @@ OpenSearch.prototype = {
 
       this.engine = this.engine; // load from prefs
       let tabmail = document.getElementById("tabmail");
-
-      var prefs = Cc["@mozilla.org/preferences-service;1"]
-                            .getService(Ci.nsIPrefBranch);
 
       tabmail.registerTabType(siteTabType);
 
@@ -552,12 +545,12 @@ OpenSearch.prototype = {
   },
 
   set engine(value) {
-    this.mPrefs.setCharPref("opensearch.engine", value);
+    Services.prefs.setCharPref("opensearch.engine", value);
   },
 
   get engine() {
     try {
-      return this.mPrefs.getCharPref("opensearch.engine");
+      return Services.prefs.getCharPref("opensearch.engine");
     } catch (e) {
       if (Services.search.defaultEngine != null)
         return Services.search.defaultEngine.name;
@@ -608,13 +601,6 @@ OpenSearch.prototype = {
         return; // It's not our row.
       opensearch.doSearch('gloda', aSubject.state.string);
     }
-  },
-
-  get _protocolSvc() {
-    delete this._protocolSvc;
-    return this._protocolSvc =
-      Cc["@mozilla.org/uriloader/external-protocol-service;1"]
-                .getService(Ci.nsIExternalProtocolService);
   },
 
   updateHeight: function(sync) {
@@ -692,7 +678,7 @@ OpenSearch.prototype = {
     if (href) {
       dump("href = " + href + "\n");
       let uri = makeURI(href);
-      if (!this._protocolSvc.isExposedProtocol(uri.scheme) ||
+      if (!this.protocol.isExposedProtocol(uri.scheme) ||
           uri.schemeIs("http") || uri.schemeIs("https")) {
          //if they're still in the search app, keep 'em.
          // XXX: we need a smarter way (both for google and others)
