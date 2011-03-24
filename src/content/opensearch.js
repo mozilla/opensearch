@@ -94,7 +94,7 @@ function log(whereFrom, engine) {
         "&from=" + whereFrom;
   let req = new XMLHttpRequest();
   req.open('GET', url);
-  req.channel.loadFlags |= Components.interfaces.nsIRequest.LOAD_BYPASS_CACHE;
+  req.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
   req.send(null);
 };
 
@@ -425,14 +425,14 @@ var siteTabType = {
     aTab.browser.addProgressListener(opensearch);
 
     // Create a filter and hook it up to our browser
-    aTab.filter = Components.classes["@mozilla.org/appshell/component/browser-status-filter;1"]
-                            .createInstance(Components.interfaces.nsIWebProgress);
+    aTab.filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]
+                    .createInstance(Ci.nsIWebProgress);
 
     // Wire up a progress listener to the filter for this browser
     aTab.progressListener = new tabProgressListener(aTab, false);
 
-    aTab.filter.addProgressListener(aTab.progressListener, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
-    aTab.browser.webProgress.addProgressListener(aTab.filter, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+    aTab.filter.addProgressListener(aTab.progressListener, Ci.nsIWebProgress.NOTIFY_ALL);
+    aTab.browser.webProgress.addProgressListener(aTab.filter, Ci.nsIWebProgress.NOTIFY_ALL);
   }
 }
 
@@ -454,7 +454,7 @@ OpenSearch.prototype = {
   onLoad: function(evt) {
     try {
       this.mOS.addObserver(opensearch, "autocomplete-did-enter-text", false);
-      this.glodaCompleter = Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
+      this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
 
       // Add us as the second completer.
       this.glodaCompleter.completers.unshift(null);
@@ -464,8 +464,8 @@ OpenSearch.prototype = {
       this.engine = this.engine; // load from prefs
       let tabmail = document.getElementById("tabmail");
 
-      var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                            .getService(Components.interfaces.nsIPrefBranch);
+      var prefs = Cc["@mozilla.org/preferences-service;1"]
+                            .getService(Ci.nsIPrefBranch);
 
       tabmail.registerTabType(siteTabType);
 
@@ -475,7 +475,7 @@ OpenSearch.prototype = {
                                  "bing", "wikipedia"]) {
         Services.search.addEngine(
             "chrome://opensearch/locale/searchplugins/" + provider + ".xml",
-            Components.interfaces.nsISearchEngine.DATA_XML,
+            Ci.nsISearchEngine.DATA_XML,
             "", false);
       }
       // Wait for the service to finish loading the engines.
@@ -618,8 +618,8 @@ OpenSearch.prototype = {
   get _protocolSvc() {
     delete this._protocolSvc;
     return this._protocolSvc =
-      Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
-                .getService(Components.interfaces.nsIExternalProtocolService);
+      Cc["@mozilla.org/uriloader/external-protocol-service;1"]
+                .getService(Ci.nsIExternalProtocolService);
   },
 
   updateHeight: function(sync) {
@@ -661,11 +661,9 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
-  QueryInterface: XPCOMUtils.generateQI([
-        Components.interfaces.nsIWebProgressListener,
-        Components.interfaces.nsISupportsWeakReference,
-        Components.interfaces.nsISupports
-        ]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference,
+                                         Ci.nsISupports]),
 
   onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
   onLocationChange: function(aProgress, aRequest, aURI) {},
