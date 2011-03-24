@@ -49,13 +49,14 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource:///modules/errUtils.js");
-var EXTPREFNAME = "extension.opensearch.data";
 
-var searchService = Components.classes["@mozilla.org/browser/search-service;1"]
-                              .getService(Components.interfaces
-                                                    .nsIBrowserSearchService);
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource:///modules/errUtils.js");
+
+var EXTPREFNAME = "extension.opensearch.data";
 
 function ResultRowSingle(term) {
   this.term = term;
@@ -473,7 +474,7 @@ OpenSearch.prototype = {
       for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
                                  "answers", "creativecommons", "eBay",
                                  "bing", "wikipedia"]) {
-        searchService.addEngine(
+        Services.search.addEngine(
             "chrome://opensearch/locale/searchplugins/" + provider + ".xml",
             Components.interfaces.nsISearchEngine.DATA_XML,
             "", false);
@@ -492,14 +493,14 @@ OpenSearch.prototype = {
       for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
                                "Creative Commons", "Answers.com", "Amazon.com",
                                "Twitter Search", "Yahoo", "Google"]) {
-        let engineObj = searchService.getEngineByName(engine);
+        let engineObj = Services.search.getEngineByName(engine);
         if (engineObj)
-          searchService.moveEngine(engineObj, 0);
+          Services.search.moveEngine(engineObj, 0);
       }
 
       // Load the engines from the service into our menu.
       let engines = document.getElementById("engines");
-      for each (let engine in searchService.getVisibleEngines()) {
+      for each (let engine in Services.search.getVisibleEngines()) {
         let item = engines.appendItem(engine.name, engine.name);
         item.setAttribute("image", engine.iconURI.spec);
         item.setAttribute("type", "radio");
@@ -564,15 +565,15 @@ OpenSearch.prototype = {
     try {
       return this.mPrefs.getCharPref("opensearch.engine");
     } catch (e) {
-      if (searchService.defaultEngine != null)
-        return searchService.defaultEngine.name;
+      if (Services.search.defaultEngine != null)
+        return Services.search.defaultEngine.name;
       return "Google";
     }
   },
 
   getSearchURL: function(searchterm) {
     try {
-      var engine = searchService.getEngineByName(this.engine);
+      var engine = Services.search.getEngineByName(this.engine);
       var submission = engine.getSubmission(searchterm);
       return submission.uri.spec;
     } catch (e) {
