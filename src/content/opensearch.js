@@ -56,8 +56,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/errUtils.js");
 
-var EXTPREFNAME = "extension.opensearch.data";
-
 function ResultRowSingle(term) {
   this.term = term;
   this.typeForStyle = "websearch";
@@ -102,7 +100,7 @@ function log(whereFrom, engine) {
 /**
  * A tab to show content pages.
  */
-var siteTabType = {
+let siteTabType = {
   name: "siteTab",
   perTabPanel: "vbox",
   lastBrowserId: 0,
@@ -156,7 +154,7 @@ var siteTabType = {
     aTab.panel.appendChild(clone);
 
     let engines = clone.getElementsByClassName("engines")[0];
-    for (var i=0; i<engines.itemCount; i++) {
+    for (let i=0; i<engines.itemCount; i++) {
       let item = engines.getItemAtIndex(i);
       if (aArgs.engine == item.label) {
         engines.selectedIndex = i;
@@ -554,8 +552,8 @@ OpenSearch.prototype = {
 
   getSearchURL: function(searchterm) {
     try {
-      var engine = Services.search.getEngineByName(this.engine);
-      var submission = engine.getSubmission(searchterm);
+      let engine = Services.search.getEngineByName(this.engine);
+      let submission = engine.getSubmission(searchterm);
       return submission.uri.spec;
     } catch (e) {
       logException(e);
@@ -630,8 +628,7 @@ OpenSearch.prototype = {
                      engine: this.engine,
                      clickHandler: "opensearch.siteClickHandler(event)"
                     };
-      var tabmail = document.getElementById("tabmail");
-      tabmail.openTab("siteTab", options);
+      document.getElementById("tabmail").openTab("siteTab", options);
     } catch (e) {
       logException(e);
     }
@@ -677,8 +674,8 @@ OpenSearch.prototype = {
          //if they're still in the search app, keep 'em.
          // XXX: we need a smarter way (both for google and others)
         domains = this.getURLPrefixesForEngine();
-        var inscope = false;
-        for (var i =0; i < domains.length; i++) {
+        let inscope = false;
+        for (let i =0; i < domains.length; i++) {
           if (uri.spec.indexOf(domains[i]) == 0) {
             dump("in scope, as " + domains[i] + " == " + uri.host + "\n");
             inscope = true;
@@ -693,7 +690,7 @@ OpenSearch.prototype = {
     }
   }
 };
-var opensearch = new OpenSearch();
+let opensearch = new OpenSearch();
 
 window.addEventListener("load", function(evt) { opensearch.onLoad(evt); }, false);
 
