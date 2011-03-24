@@ -10,7 +10,6 @@
   text-decoration: underline;
 }
 
-
 tab[type="siteTab"][engine="google"] .tab-icon-image {
   list-style-image: url('http://www.google.com/favicon.ico');
 }
@@ -26,11 +25,9 @@ tab[type="siteTab"][engine="wikipedia"] .tab-icon-image {
 
 vbox.mininav {
   background: #ddd;
-  border-bottom: 1px solid #8c8c8c;
-  border-top: 1px solid #8c8c8c;
-  background-image: -moz-linear-gradient(top center, #f9f9f9 1px, #dfdfdf 1px, #ccc);
+  border-right: 1px solid #8c8c8c;
+  background-image: -moz-linear-gradient(right center, #f9f9f9 1px, #dfdfdf 1px, #ccc);
   -moz-box-align: center;
-  height: 35px;
 }
 
 .mininav button image {
@@ -92,7 +89,26 @@ vbox.mininav {
   cursor: pointer;
 }
 
+.mininav .menulist .menulist-label {
+  display: none;
+}
+
 .mininav .menulist .menulist-dropmarker {
-  -moz-appearance: menulist-button;
-  display: -moz-box;
+  -moz-appearance: none;
+  display: none;
+}
+
+.mininav .menulist menupopup,
+.mininav .menulist .popup-internal-box{
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+.mininav .menulist menupopup menuitem label {
+  display: none;
+}
+
+.mininav .menulist menupopup menuitem {
+  padding-right: 0;
 }

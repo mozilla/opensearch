@@ -43,15 +43,15 @@
   <script type="application/x-javascript" src="chrome://opensearch/content/opensearch.js"/>
 
   <!--We want to enable browser history, and at least the Go menu-->
-  <browser id="dummycontentbrowser" disablehistory="false"/>
+  <browser id="dummycontentbrowser" type="content" disablehistory="false"/>
   <tabmail id="tabmail">
     <vbox id="siteTab" collapsed="true">
       <hbox flex="1">
         <vbox id="navbar" class="mininav">
-          <hbox id="navbuttons">
+          <vbox id="navbuttons">
             <button class="back" label="&#0171;"/>
             <button class="forward" label="&#187;"/>
-          </hbox>
+          </vbox>
           <menulist id="engines" class="menulist" sizetopopup="always"
                     oncommand="opensearch.setSearchEngine(event)">
             <menupopup onpopupshowing="opensearch.showPopup()">
@@ -75,29 +75,17 @@
               oncommand="getBrowser().goForward();"/>
   </popup>
 
-  <menupopup id="messageMenuPopup">
-    <menu id="menu_search" label="Search…"
-          insertafter="menu_editMsgAsNew">
-      <menupopup id="menu_searchpopup"
-                 onpopupshowing="opensearch.initContextPopup(event)"
-                 oncommand="opensearch.doSearch(event.target.value)">
-        <menuitem id="menu_searchTheWeb"
-                  label="Search the web…"/>
-        <menuseparator id="mailContext-sep-search"/>
-      </menupopup>
-    </menu>
+  <menupopup id="messageMenuPopup"
+             onpopupshowing="opensearch.initContextPopup(event)">
+    <menuitem id="menu_searchTheWeb" insertafter="menu_editMsgAsNew"
+              label="Search the web…"
+              oncommand="opensearch.doSearch('menu', event.target.value)"/>
   </menupopup>
 
-  <menupopup id="mailContext">
-    <menu id="mailContext-search" label="Search…"
-          insertafter="mailContext-editAsNew">
-      <menupopup id="mailContext-searchpopup"
-                 onpopupshowing="opensearch.initContextPopup(event)"
-                 oncommand="opensearch.doSearch(event.target.value)">
-        <menuitem id="mailContext-searchTheWeb"
-                  label="Search the web…"/>
-        <menuseparator id="mailContext-sep-search"/>
-      </menupopup>
-    </menu>
+  <menupopup id="mailContext"
+             onpopupshowing="opensearch.initContextPopup(event)">
+    <menuitem id="mailContext_searchTheWeb" insertafter="mailContext-editAsNew"
+              label="Search the web…"
+              oncommand="opensearch.doSearch('context', event.target.value)"/>
   </menupopup>
 </overlay>
