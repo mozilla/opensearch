@@ -49,8 +49,8 @@
       <hbox flex="1">
         <vbox id="navbar" class="mininav">
           <vbox id="navbuttons">
-            <button class="back" label="&#0171;"/>
-            <button class="forward" label="&#187;"/>
+            <button class="back" label="&#0171;" disabled="true"/>
+            <button class="forward" label="&#187;" disabled="true"/>
           </vbox>
           <radiogroup class="engines" id="radios"></radiogroup>
         </vbox>
