@@ -67,8 +67,7 @@ ResultRowSingle.prototype = {
   fullText: false,
 };
 
-function WebSearchCompleter() {
-}
+function WebSearchCompleter() { }
 
 WebSearchCompleter.prototype = {
   complete: function WebSearchCompleter_complete(aResult, aString) {
@@ -435,7 +434,7 @@ OpenSearch.prototype = {
 
   onLoad: function(evt) {
     try {
-      Services.obs.addObserver(opensearch, "autocomplete-did-enter-text", false);
+      Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
 
       // Add us as the second completer.
@@ -444,9 +443,7 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers[1] = new WebSearchCompleter();
 
       this.engine = this.engine; // load from prefs
-      let tabmail = document.getElementById("tabmail");
-
-      tabmail.registerTabType(siteTabType);
+      document.getElementById("tabmail").registerTabType(siteTabType);
 
       // Load our search engines into the service.
       for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
@@ -463,6 +460,10 @@ OpenSearch.prototype = {
     } catch (e) {
       logException(e);
     }
+  },
+
+  onUnLoad: function (evt) {
+    Services.obs.removeObserver(this, "autocomplete-did-enter-text", false);
   },
 
   finishLoading: function() {
@@ -581,7 +582,6 @@ OpenSearch.prototype = {
     return [];
   },
 
-
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == "autocomplete-did-enter-text") {
       let selectedIndex = aSubject.popup.selectedIndex;
@@ -592,29 +592,6 @@ OpenSearch.prototype = {
       if (!row || (row.typeForStyle != "websearch"))
         return; // It's not our row.
       opensearch.doSearch('gloda', aSubject.state.string);
-    }
-  },
-
-  updateHeight: function(sync) {
-    try {
-      window.clearTimeout(opensearch.timeout);
-      let f = function () {
-        try {
-          let browser = opensearch.tabthing.browser;
-          let outerbox = browser.parentNode;
-          let hbox = outerbox.firstChild;
-          outerbox.height = browser.contentDocument.height + hbox.clientHeight + "px";
-          window.clearTimeout(opensearch.timeout);
-        } catch (e) {
-          logException(e);
-        }
-      }
-      if (sync)
-        f();
-      else
-        opensearch.timeout = window.setTimeout(f, 100);
-    } catch (e) {
-      logException(e);
     }
   },
 
@@ -655,8 +632,12 @@ OpenSearch.prototype = {
   },
 
   goForward: function() {
-    let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-    browser.goForward();
+    try {
+      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      browser.goForward();
+    } catch (e) {
+      logException(e);
+    }
   },
 
   siteClickHandler: function(aEvent) {
@@ -693,5 +674,4 @@ OpenSearch.prototype = {
 let opensearch = new OpenSearch();
 
 window.addEventListener("load", function(evt) { opensearch.onLoad(evt); }, false);
-
-
+window.addEventListener("unload", function(evt) { opensearch.onUnLoad(evt); }, false);
