@@ -54,6 +54,11 @@
             <button class="forward" label="&#187;" disabled="true"/>
           </vbox>
           <radiogroup class="engines" id="radios"></radiogroup>
+          <spacer flex="1"/>
+          <button class="check" label="✔" style="-moz-appearance:none;border:none;padding:0;margin:0;"/>
+          <panel id="tip" type="arrow" level="parent" fade="slow" class="tip" position="end_before">
+            <hbox><description>Set this search engine as the default</description></hbox>
+          </panel>
         </vbox>
         <browser id="dummycontentbrowser" type="content-targetable" flex="1"
                  disablehistory="true" autocompletepopup="PopupAutoComplete"

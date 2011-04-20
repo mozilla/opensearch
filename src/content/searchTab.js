@@ -141,6 +141,9 @@ let searchTabType = {
     aTab.engine = aArgs.engine;
     aTab.query = aArgs.query;
 
+    aTab.panel = clone.getElementsByClassName("tip")[0];
+    aTab.check = clone.getElementsByClassName("check")[0];
+
     // Set up onclick/oncommand listeners.
     clone.getElementsByClassName("back")[0].addEventListener("click",
       function (e) {
@@ -155,6 +158,14 @@ let searchTabType = {
         aTab.engine = e.target.value;
         opensearch.setSearchEngine(e);
         opensearch.doSearch("browser", opensearch.previousSearchTerm);
+      }, true);
+    aTab.check.addEventListener("mouseover",
+      function () {
+        aTab.panel.openPopup(aTab.check);
+      }, true);
+    aTab.check.addEventListener("mouseout",
+      function () {
+        aTab.panel.hidePopup();
       }, true);
 
     aTab.browser.loadURI(aArgs.contentPage);
