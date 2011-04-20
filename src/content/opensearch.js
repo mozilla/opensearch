@@ -51,6 +51,9 @@
 // Defined in searchTab.js
 // const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+// From mozilla/toolkit/components/search/nsSearchService.js
+const NS_APP_SEARCH_DIR_LIST = "SrchPluginsDL";
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/errUtils.js");
@@ -104,6 +107,31 @@ OpenSearch.prototype = {
     req.send(null);
   },
 
+  // Make ourselves an nsIDirectoryServiceProvider2.
+  getFiles : function(prop) {
+    if (prop != NS_APP_SEARCH_DIR_LIST)
+      return null;
+
+    // Figure out where our search engines are.
+    let chromeURL = "chrome://opensearch/locale/searchplugins/";
+    var crs = Cc['@mozilla.org/chrome/chrome-registry;1']
+                .getService(Ci.nsIChromeRegistry);
+
+    var nsIURI = Services.io.newURI(decodeURI(chromeURL), 'UTF-8', null);
+    var fileURL = crs.convertChromeURL(nsIURI).spec;
+
+    // get the nsILocalFile for the file
+    var file = Services.io.getProtocolHandler("file")
+                          .QueryInterface(Ci.nsIFileProtocolHandler)
+                          .getFileFromURLSpec(fileURL);
+
+    // And use our search engines for the list.
+    var array = Cc["@mozilla.org/array;1"]
+                  .createInstance(Ci.nsIMutableArray);
+    array.appendElement(file, false);
+    return array.enumerate();
+  },
+
   onLoad: function(evt) {
     try {
       Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
@@ -117,15 +145,8 @@ OpenSearch.prototype = {
       this.engine = this.engine; // load from prefs
       document.getElementById("tabmail").registerTabType(searchTabType);
 
-      // Load our search engines into the service.
-      for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
-                                 "answers", "creativecommons", "eBay",
-                                 "bing", "wikipedia"]) {
-        Services.search.addEngine(
-            "chrome://opensearch/locale/searchplugins/" + provider + ".xml",
-            Ci.nsISearchEngine.DATA_XML,
-            "", false);
-      }
+      Services.dirsvc.registerProvider(this);
+
       // Wait for the service to finish loading the engines.
       setTimeout(this.finishLoading, 2000);
 
@@ -140,15 +161,6 @@ OpenSearch.prototype = {
 
   finishLoading: function() {
     try {
-      // Put the engines in the correct order.
-      for each (let engine in ["Wikipedia (en)", "Bing", "eBay",
-                               "Creative Commons", "Answers.com", "Amazon.com",
-                               "Twitter Search", "Yahoo", "Google"]) {
-        let engineObj = Services.search.getEngineByName(engine);
-        if (engineObj)
-          Services.search.moveEngine(engineObj, 0);
-      }
-
       // Load the engines from the service into our radio buttons.
       let radios = document.getElementById("radios");
       for each (let engine in Services.search.getVisibleEngines()) {
@@ -284,7 +296,9 @@ OpenSearch.prototype = {
   },
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference,
-                                         Ci.nsISupports]),
+                                         Ci.nsISupports,
+                                         Ci.nsIDirectoryServiceProvider2]),
+
 
   onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
   onLocationChange: function(aProgress, aRequest, aURI) {},
