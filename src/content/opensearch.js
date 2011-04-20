@@ -260,7 +260,11 @@ OpenSearch.prototype = {
         return ["http://www.amazon.com/gp/search/"];
       case "Creative Commons":
         return ["http://search.creativecommons.org"];
-      // todo: Answers.com, Creative Commons, and eBay.
+      case "Twitter Search":
+        return ["http://search.twitter.com"];
+      case "Answers.com":
+        return ["http://wiki.answers.com/Q"];
+      // todo: eBay.
     }
     // By default open everything in the default browser.
     return [];
