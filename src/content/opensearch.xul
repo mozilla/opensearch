@@ -40,12 +40,13 @@
 
 <overlay id="opensearch-overlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script type="application/x-javascript" src="chrome://opensearch/content/searchTab.js"/>
   <script type="application/x-javascript" src="chrome://opensearch/content/opensearch.js"/>
 
   <!--We want to enable browser history, and at least the Go menu-->
   <browser id="dummycontentbrowser" type="content" disablehistory="false"/>
   <tabmail id="tabmail">
-    <vbox id="siteTab" collapsed="true">
+    <vbox id="searchTab" collapsed="true">
       <hbox flex="1">
         <vbox id="navbar" class="mininav">
           <vbox id="navbuttons">

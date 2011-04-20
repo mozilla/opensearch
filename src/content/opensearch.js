@@ -6,8 +6,6 @@
   a) same domain
   b) for some, include a few extra domains like login, etc.
 - move xul mods to an overlay somehow
-- bug: session restore restores them as regular contentTabs -- we may need to create
-  a new kind of tab ("siteTab"?)
 - propose a patch to specialTabs or tabmail that allows tabs to specify
   favicons and or favicon-updating functions
 
@@ -50,7 +48,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+// Defined in searchTab.js
+// const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -85,343 +84,6 @@ WebSearchCompleter.prototype = {
   }
 };
 
-function log(whereFrom, engine) {
-  let url = "https://opensearch-live.mozillamessaging.com/search" +
-        "?provider=" + engine +
-        "&from=" + whereFrom;
-  let req = new XMLHttpRequest();
-  req.open('GET', url);
-  req.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
-  req.send(null);
-};
-
-
-/**
- * A tab to show content pages.
- */
-let siteTabType = {
-  name: "siteTab",
-  perTabPanel: "vbox",
-  lastBrowserId: 0,
-  get loadingTabString() {
-    delete this.loadingTabString;
-    return this.loadingTabString = document.getElementById("bundle_messenger")
-                                           .getString("loadingTab");
-  },
-
-  modes: {
-    siteTab: {
-      type: "siteTab",
-      maxTabs: 10
-    }
-  },
-
-  shouldSwitchTo: function onSwitchTo({contentPage: aContentPage}) {
-    let tabmail = document.getElementById("tabmail");
-    let tabInfo = tabmail.tabInfo;
-
-    // Remove any anchors - especially for the about: pages, we just want
-    // to re-use the same tab.
-    let regEx = new RegExp("#.*");
-
-    let contentUrl = aContentPage.replace(regEx, "");
-
-    for (let selectedIndex = 0; selectedIndex < tabInfo.length;
-         ++selectedIndex) {
-      if (tabInfo[selectedIndex].mode.name == this.name &&
-          tabInfo[selectedIndex].browser.currentURI.spec
-                                .replace(regEx, "") == contentUrl) {
-        // Ensure we go to the correct location on the page.
-        tabInfo[selectedIndex].browser
-                              .setAttribute("src", aContentPage);
-        return selectedIndex;
-      }
-    }
-    return -1;
-  },
-
-  openTab: function onTabOpened(aTab, aArgs) {
-    if (!"contentPage" in aArgs)
-      throw("contentPage must be specified");
-
-    // First clone the page and set up the basics.
-    let clone = document.getElementById("siteTab").firstChild.cloneNode(true);
-
-    clone.setAttribute("id", "siteTab" + this.lastBrowserId);
-    clone.setAttribute("collapsed", false);
-
-    aTab.panel.appendChild(clone);
-
-    let engines = clone.getElementsByClassName("engines")[0];
-    for (let i=0; i<engines.itemCount; i++) {
-      let item = engines.getItemAtIndex(i);
-      if (aArgs.engine == item.label) {
-        engines.selectedIndex = i;
-        break;
-      }
-    }
-
-    // Start setting up the browser.
-    aTab.browser = aTab.panel.getElementsByTagName("browser")[0];
-
-    // As we're opening this tab, showTab may not get called, so set
-    // the type according to if we're opening in background or not.
-    let background = ("background" in aArgs) && aArgs.background;
-    aTab.browser.setAttribute("type", background ? "content-targetable" :
-                                                   "content-primary");
-
-    aTab.browser.setAttribute("id", "siteTabBrowser" + this.lastBrowserId);
-
-    aTab.browser.setAttribute("onclick",
-                              "clickHandler" in aArgs && aArgs.clickHandler ?
-                              aArgs.clickHandler :
-                              "specialTabs.defaultClickHandler(event);");
-
-    // Now initialise the find bar.
-    aTab.findbar = aTab.panel.getElementsByTagName("findbar")[0];
-    aTab.findbar.setAttribute("browserid",
-                              "siteTabBrowser" + this.lastBrowserId);
-
-    // Default to reload being disabled.
-    aTab.reloadEnabled = false;
-
-    // Now set up the listeners.
-    this._setUpTitleListener(aTab);
-    this._setUpCloseWindowListener(aTab);
-    this._setUpBrowserListener(aTab);
-
-    // Now start loading the content.
-    aTab.title = this.loadingTabString;
-
-    aTab.engine = aArgs.engine;
-    aTab.query = aArgs.query;
-
-    // Set up onclick/oncommand listeners.
-    clone.getElementsByClassName("back")[0].addEventListener("click",
-      function (e) {
-        aTab.browser.goBack();
-      }, true);
-    clone.getElementsByClassName("forward")[0].addEventListener("click",
-      function () {
-        aTab.browser.goForward();
-      }, true);
-    clone.getElementsByClassName("engines")[0].addEventListener("command",
-      function(e) {
-        aTab.engine = e.target.value;
-        opensearch.setSearchEngine(e);
-      }, true);
-
-    aTab.browser.loadURI(aArgs.contentPage);
-
-    this.lastBrowserId++;
-  },
-
-  closeTab: function onTabClosed(aTab) {
-    aTab.browser.removeEventListener("DOMTitleChanged",
-                                     aTab.titleListener, true);
-    aTab.browser.removeEventListener("DOMWindowClose",
-                                     aTab.closeListener, true);
-    aTab.browser.webProgress.removeProgressListener(aTab.filter);
-    aTab.filter.removeProgressListener(aTab.progressListener);
-    aTab.browser.destroy();
-  },
-
-  saveTabState: function onSaveTabState(aTab) {
-    aTab.browser.setAttribute("type", "content-targetable");
-  },
-
-  showTab: function onShowTab(aTab) {
-    aTab.browser.setAttribute("type", "content-primary");
-  },
-
-  persistTab: function onPersistTab(aTab) {
-    if (aTab.browser.currentURI.spec == "about:blank")
-      return null;
-
-    let onClick = aTab.browser.getAttribute("onclick");
-
-    return {
-      tabURI: aTab.browser.currentURI.spec,
-      query: aTab.query,
-      engine: aTab.engine,
-      clickHandler: onClick ? onClick : null
-    };
-  },
-
-  restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
-    // Wait a bit to let us finish loading.
-    setTimeout(function() {
-      aTabmail.openTab("siteTab", {contentPage: aPersistedState.tabURI,
-                                   clickHandler: aPersistedState.clickHandler,
-                                   query: aPersistedState.query,
-                                   engine: aPersistedState.engine,
-                                   background: true});
-    }, 2000);
-  },
-
-  supportsCommand: function supportsCommand(aCommand, aTab) {
-    switch (aCommand) {
-      case "cmd_fullZoomReduce":
-      case "cmd_fullZoomEnlarge":
-      case "cmd_fullZoomReset":
-      case "cmd_fullZoomToggle":
-      case "cmd_find":
-      case "cmd_findAgain":
-      case "cmd_findPrevious":
-      case "cmd_printSetup":
-      case "cmd_print":
-      case "button_print":
-      case "cmd_stop":
-      case "cmd_reload":
-      // XXX print preview not currently supported - bug 497994 to implement.
-      // case "cmd_printpreview":
-        return true;
-      default:
-        return false;
-    }
-  },
-
-  isCommandEnabled: function isCommandEnabled(aCommand, aTab) {
-    switch (aCommand) {
-      case "cmd_fullZoomReduce":
-      case "cmd_fullZoomEnlarge":
-      case "cmd_fullZoomReset":
-      case "cmd_fullZoomToggle":
-      case "cmd_find":
-      case "cmd_findAgain":
-      case "cmd_findPrevious":
-      case "cmd_printSetup":
-      case "cmd_print":
-      case "button_print":
-      // XXX print preview not currently supported - bug 497994 to implement.
-      // case "cmd_printpreview":
-        return true;
-      case "cmd_reload":
-        return aTab.reloadEnabled;
-      case "cmd_stop":
-        return aTab.busy;
-      default:
-        return false;
-    }
-  },
-
-  doCommand: function isCommandEnabled(aCommand, aTab) {
-    switch (aCommand) {
-      case "cmd_fullZoomReduce":
-        ZoomManager.reduce();
-        break;
-      case "cmd_fullZoomEnlarge":
-        ZoomManager.enlarge();
-        break;
-      case "cmd_fullZoomReset":
-        ZoomManager.reset();
-        break;
-      case "cmd_fullZoomToggle":
-        ZoomManager.toggleZoom();
-        break;
-      case "cmd_find":
-        aTab.findbar.onFindCommand();
-        break;
-      case "cmd_findAgain":
-        aTab.findbar.onFindAgainCommand(false);
-        break;
-      case "cmd_findPrevious":
-        aTab.findbar.onFindAgainCommand(true);
-        break;
-      case "cmd_printSetup":
-        PrintUtils.showPageSetup();
-        break;
-      case "cmd_print":
-        PrintUtils.print();
-        break;
-      // XXX print preview not currently supported - bug 497994 to implement.
-      //case "cmd_printpreview":
-      //  PrintUtils.printPreview();
-      //  break;
-      case "cmd_stop":
-        aTab.browser.stop();
-        break;
-      case "cmd_reload":
-        aTab.browser.reload();
-        break;
-    }
-  },
-
-  getBrowser: function getBrowser(aTab) {
-    return aTab.browser;
-  },
-
-  // Internal function used to set up the title listener on a content tab.
-  _setUpTitleListener: function setUpTitleListener(aTab) {
-    function onDOMTitleChanged(aEvent) {
-      aTab.title = aTab.browser.contentTitle;
-      document.getElementById("tabmail").setTabTitle(aTab);
-    }
-    // Save the function we'll use as listener so we can remove it later.
-    aTab.titleListener = onDOMTitleChanged;
-    // Add the listener.
-    aTab.browser.addEventListener("DOMTitleChanged",
-                                  aTab.titleListener, true);
-  },
-
-  /**
-   * Internal function used to set up the close window listener on a content
-   * tab.
-   */
-  _setUpCloseWindowListener: function setUpCloseWindowListener(aTab) {
-    function onDOMWindowClose(aEvent) {
-      if (!aEvent.isTrusted)
-        return;
-
-      // Redirect any window.close events to closing the tab. As a 3-pane tab
-      // must be open, we don't need to worry about being the last tab open.
-      document.getElementById("tabmail").closeTab(aTab);
-      aEvent.preventDefault();
-    }
-    // Save the function we'll use as listener so we can remove it later.
-    aTab.closeListener = onDOMWindowClose;
-    // Add the listener.
-    aTab.browser.addEventListener("DOMWindowClose",
-                                  aTab.closeListener, true);
-  },
-
-  _setUpBrowserListener: function setUpBrowserListener(aTab) {
-    let navbar = aTab.browser.parentNode.firstChild;
-
-    function updateNavButtons() {
-      let backButton = navbar.getElementsByClassName("back")[0];
-      backButton.setAttribute("disabled", ! aTab.browser.canGoBack);
-      let forwardButton = navbar.getElementsByClassName("forward")[0];
-      forwardButton.setAttribute("disabled", ! aTab.browser.canGoForward);
-    };
-
-    function onDOMContentLoaded(aEvent) {
-      try {
-        log("browser", aTab.engine);
-        updateNavButtons();
-      } catch (e) {
-        logException(e);
-      }
-    };
-    aTab.browser.addEventListener("DOMContentLoaded", onDOMContentLoaded, false);
-
-    // browser navigation (front/back) does not cause onDOMContentLoaded,
-    // so we have to use nsIWebProgressListener
-    aTab.browser.addProgressListener(opensearch);
-
-    // Create a filter and hook it up to our browser
-    aTab.filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]
-                    .createInstance(Ci.nsIWebProgress);
-
-    // Wire up a progress listener to the filter for this browser
-    aTab.progressListener = new tabProgressListener(aTab, false);
-
-    aTab.filter.addProgressListener(aTab.progressListener, Ci.nsIWebProgress.NOTIFY_ALL);
-    aTab.browser.webProgress.addProgressListener(aTab.filter, Ci.nsIWebProgress.NOTIFY_ALL);
-  }
-}
-
-
 function OpenSearch() {
 
   XPCOMUtils.defineLazyServiceGetter(this, "protocol",
@@ -431,6 +93,16 @@ function OpenSearch() {
 }
 
 OpenSearch.prototype = {
+
+  log: function os_log(whereFrom, engine) {
+    let url = "https://opensearch-live.mozillamessaging.com/search" +
+          "?provider=" + engine +
+          "&from=" + whereFrom;
+    let req = new XMLHttpRequest();
+    req.open('GET', url);
+    req.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
+    req.send(null);
+  },
 
   onLoad: function(evt) {
     try {
@@ -443,7 +115,7 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers[1] = new WebSearchCompleter();
 
       this.engine = this.engine; // load from prefs
-      document.getElementById("tabmail").registerTabType(siteTabType);
+      document.getElementById("tabmail").registerTabType(searchTabType);
 
       // Load our search engines into the service.
       for each (let provider in ["google", "yahoo", "twitter", "amazondotcom",
@@ -597,7 +269,7 @@ OpenSearch.prototype = {
 
   doSearch: function(whereFrom, searchterm) {
     try {
-      log(whereFrom, this.engine);
+      this.log(whereFrom, this.engine);
       this.previousSearchTerm = searchterm;
       let options = {background: false ,
                      contentPage: this.getSearchURL(searchterm),
@@ -605,7 +277,7 @@ OpenSearch.prototype = {
                      engine: this.engine,
                      clickHandler: "opensearch.siteClickHandler(event)"
                     };
-      document.getElementById("tabmail").openTab("siteTab", options);
+      document.getElementById("tabmail").openTab("searchTab", options);
     } catch (e) {
       logException(e);
     }
@@ -648,7 +320,7 @@ OpenSearch.prototype = {
 
     let href = hRefForClickEvent(aEvent, true);
     if (href) {
-      dump("href = " + href + "\n");
+      Application.console.log("href = " + href + "\n");
       let uri = makeURI(href);
       if (!this.protocol.isExposedProtocol(uri.scheme) ||
           uri.schemeIs("http") || uri.schemeIs("https")) {
@@ -658,7 +330,8 @@ OpenSearch.prototype = {
         let inscope = false;
         for (let i =0; i < domains.length; i++) {
           if (uri.spec.indexOf(domains[i]) == 0) {
-            dump("in scope, as " + domains[i] + " == " + uri.host + "\n");
+            Application.console.log("in scope, as " + domains[i] + " == " +
+                                    uri.host + "\n");
             inscope = true;
             break;
           }
