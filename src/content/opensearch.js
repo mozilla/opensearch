@@ -207,20 +207,6 @@ OpenSearch.prototype = {
       return fillMailContextMenu(event);
   },
 
-  setSearchTerm: function(searchterm) {
-    this.previousSearchTerm = searchterm;
-    let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
-    browser.setAttribute("src", this.getSearchURL(searchterm));
-  },
-
-  setSearchEngine: function(event) {
-    try {
-      this.engine = event.target.value;
-    } catch (e) {
-      logException(e);
-    }
-  },
-
   set engine(value) {
     Services.prefs.setCharPref("opensearch.engine", value);
   },
@@ -235,9 +221,9 @@ OpenSearch.prototype = {
     }
   },
 
-  getSearchURL: function(searchterm) {
+  getSearchURL: function(aEngine, searchterm) {
     try {
-      let engine = Services.search.getEngineByName(this.engine);
+      let engine = Services.search.getEngineByName(aEngine);
       let submission = engine.getSubmission(searchterm);
       return submission.uri.spec;
     } catch (e) {
@@ -246,8 +232,8 @@ OpenSearch.prototype = {
     return "";
   },
 
-  getURLPrefixesForEngine: function() {
-    switch (this.engine) {
+  getURLPrefixesForEngine: function(aEngine) {
+    switch (aEngine) {
       case "Yahoo":
         return ["http://search.yahoo.com", "http://www.yahoo.com"];
       case "Google":
@@ -279,16 +265,16 @@ OpenSearch.prototype = {
       let row = curResult.getObjectAt(selectedIndex);
       if (!row || (row.typeForStyle != "websearch"))
         return; // It's not our row.
-      opensearch.doSearch('gloda', aSubject.state.string);
+      opensearch.openNewSearchTab('gloda', aSubject.state.string);
     }
   },
 
-  doSearch: function(whereFrom, searchterm) {
+  openNewSearchTab: function(whereFrom, searchterm) {
     try {
       this.log(whereFrom, this.engine);
       this.previousSearchTerm = searchterm;
       let options = {background: false ,
-                     contentPage: this.getSearchURL(searchterm),
+                     contentPage: this.getSearchURL(this.engine, searchterm),
                      query: searchterm,
                      engine: this.engine,
                      clickHandler: "opensearch.siteClickHandler(event)"
@@ -298,6 +284,16 @@ OpenSearch.prototype = {
       logException(e);
     }
   },
+
+  doSearch: function(whereFrom, engine, searchterm, browser) {
+    try {
+      this.log(whereFrom, engine);
+      browser.setAttribute("src", this.getSearchURL(engine, searchterm));
+    } catch (e) {
+      logException(e);
+    }
+  },
+
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference,
                                          Ci.nsISupports,
@@ -344,7 +340,8 @@ OpenSearch.prototype = {
           uri.schemeIs("http") || uri.schemeIs("https")) {
          //if they're still in the search app, keep 'em.
          // XXX: we need a smarter way (both for google and others)
-        domains = this.getURLPrefixesForEngine();
+        let tab = document.getElementById("tabmail").selectedTab;
+        domains = this.getURLPrefixesForEngine(tab.engine);
         let inscope = false;
         for (let i =0; i < domains.length; i++) {
           if (uri.spec.indexOf(domains[i]) == 0) {

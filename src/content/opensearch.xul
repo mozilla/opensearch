@@ -74,20 +74,20 @@
               oncommand="opensearch.goBack()"/>
     <menuitem id="mailContext-browserForward"
               label="Go Forward"
-              oncommand="getBrowser().goForward();"/>
+              oncommand="opensearch.goForward();"/>
   </popup>
 
   <menupopup id="messageMenuPopup"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="menu_searchTheWeb" insertafter="menu_editMsgAsNew"
               label="Search the web…"
-              oncommand="opensearch.doSearch('menu', event.target.value)"/>
+              oncommand="opensearch.openNewSearchTab('menu', event.target.value)"/>
   </menupopup>
 
   <menupopup id="mailContext"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="mailContext_searchTheWeb" insertafter="mailContext-editAsNew"
               label="Search the web…"
-              oncommand="opensearch.doSearch('context', event.target.value)"/>
+              oncommand="opensearch.openNewSearchTab('context', event.target.value)"/>
   </menupopup>
 </overlay>

@@ -156,8 +156,7 @@ let searchTabType = {
     clone.getElementsByClassName("engines")[0].addEventListener("command",
       function(e) {
         aTab.engine = e.target.value;
-        opensearch.setSearchEngine(e);
-        opensearch.doSearch("browser", opensearch.previousSearchTerm);
+        opensearch.doSearch("browser", aTab.engine, aTab.query, aTab.browser);
       }, true);
     aTab.check.addEventListener("mouseover",
       function () {
