@@ -143,27 +143,40 @@ let searchTabType = {
 
     aTab.panel = clone.getElementsByClassName("tip")[0];
     aTab.check = clone.getElementsByClassName("check")[0];
+    aTab.check.hidden = (aTab.engine == opensearch.engine);
 
     // Set up onclick/oncommand listeners.
     clone.getElementsByClassName("back")[0].addEventListener("click",
       function (e) {
         aTab.browser.goBack();
+        aTab.check.hidden = (aTab.engine == opensearch.engine);
       }, true);
     clone.getElementsByClassName("forward")[0].addEventListener("click",
       function () {
         aTab.browser.goForward();
+        aTab.check.hidden = (aTab.engine == opensearch.engine);
       }, true);
     clone.getElementsByClassName("engines")[0].addEventListener("command",
       function(e) {
         aTab.engine = e.target.value;
         opensearch.doSearch("browser", aTab.engine, aTab.query, aTab.browser);
+        aTab.check.hidden = (aTab.engine == opensearch.engine);
+      }, true);
+    aTab.check.addEventListener("click",
+      function () {
+        aTab.panel.hidePopup();
+        opensearch.engine = aTab.engine;
+        aTab.check.hidden = true;
+        Application.console.log("Check click check? "+aTab.check.hidden);
       }, true);
     aTab.check.addEventListener("mouseover",
       function () {
         aTab.panel.openPopup(aTab.check);
+        aTab.check.focus();
       }, true);
     aTab.check.addEventListener("mouseout",
       function () {
+        Application.console.log(aTab.panel.isContextMenu);
         aTab.panel.hidePopup();
       }, true);
 
@@ -188,6 +201,7 @@ let searchTabType = {
 
   showTab: function onShowTab(aTab) {
     aTab.browser.setAttribute("type", "content-primary");
+    //aTab.check.hidden = (aTab.engine == opensearch.engine);
   },
 
   persistTab: function onPersistTab(aTab) {
