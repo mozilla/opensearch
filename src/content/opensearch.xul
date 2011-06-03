@@ -36,7 +36,7 @@
   -
   - ***** END LICENSE BLOCK ***** -->
 
-<?xml-stylesheet href="chrome://opensearch/skin/overlay.css" type="text/css"?>
+<?xml-stylesheet href="chrome://opensearch/skin/opensearch.css" type="text/css"?>
 <?xml-stylesheet href="chrome://opensearch/content/websearch-binding.css" type="text/css"?>
 
 <!DOCTYPE overlay [
@@ -55,15 +55,13 @@
       <hbox flex="1">
         <vbox id="navbar" class="mininav">
           <vbox id="navbuttons">
-            <button class="back" label="&backButton.label;"
-                    disabled="true"/>
-            <button class="forward" label="&forwardButton.label;"
-                    disabled="true"/>
+            <toolbarbutton class="back" label="&backButton.label;"
+                           disabled="true"/>
+            <toolbarbutton class="forward" label="&forwardButton.label;"
+                           disabled="true"/>
           </vbox>
           <arrowscrollbox id="engines" class="engines" orient="vertical" flex="1"/>
-          <spacer flex="1"/>
-          <button class="check" label="&defaultButton.label;"
-                  style="-moz-appearance:none;border:none;padding:0;margin:0;"/>
+          <button class="check" label="&defaultButton.label;"/>
           <panel id="tip" type="arrow" level="parent" fade="slow"
                  class="tip" position="end_before" noautofocus="true">
             <hbox><description>&defaultDescription.label;</description></hbox>

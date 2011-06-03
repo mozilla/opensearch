@@ -1,4 +1,6 @@
 content   opensearch   content/
 locale    opensearch   en-US         locale/en-US/
-skin      opensearch   classic/1.0   skin/
+skin      opensearch   classic/1.0   skin/gnomestripe/
+skin      opensearch   classic/1.0   skin/pinstripe/   os=Darwin
+skin      opensearch   classic/1.0   skin/qute/        os=WINNT
 overlay   chrome://messenger/content/messenger.xul  chrome://opensearch/content/opensearch.xul
