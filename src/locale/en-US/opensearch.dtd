@@ -44,6 +44,5 @@
 <!ENTITY goForward.label          "Go forward">
 <!ENTITY goForward.accesskey      "o">
 <!-- LOCALIZATION NOTE(searchWeb.accesskey): this should correspond to a
-     character in browser.search.prompt and browser.search.empty in
-     opensearch.properties -->
+     character in browser.search.prompt in opensearch.properties -->
 <!ENTITY searchWeb.accesskey      "w">

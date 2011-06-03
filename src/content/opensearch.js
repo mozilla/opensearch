@@ -213,13 +213,12 @@ OpenSearch.prototype = {
     if (selection) {
       menuitem.label = this._formatString("browser.search.prompt", [selection]);
       menuitem.value = "" + selection;
-      menuitem.disabled = false;
+      menuitem.hidden = false;
     }
     else {
-      // Or just disable the item.
-      menuitem.label = this._formatString("browser.search.prompt.empty");
+      // Or just hide the item.
       menuitem.value = "";
-      menuitem.disabled = true;
+      menuitem.hidden = true;
     }
 
     if (menuid == "menu_searchTheWeb")
