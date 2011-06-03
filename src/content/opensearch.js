@@ -99,25 +99,6 @@ function OpenSearch() {
 }
 
 OpenSearch.prototype = {
-  /**
-   * Format a localized string, optionally with parameters or pluralization.
-   *
-   * @param key the string key from the properties file
-   * @param replacements (optional) an array of replacement strings
-   * @param plural (optional) the count to be passed to PluralForm
-   * @return the formatted string
-   */
-  _formatString: function OpenSearch__formatString(key, replacements, plural) {
-    let str = this.bundle.GetStringFromName(key);
-    if (plural !== undefined)
-      str = PluralForm.get(plural, str);
-    if (replacements !== undefined) {
-      for (let i = 0; i < replacements.length; i++)
-        str = str.replace("#" + (i+1), replacements[i]);
-    }
-    return str;
-  },
-
   log: function os_log(whereFrom, engine) {
     let url = "https://opensearch-live.mozillamessaging.com/search" +
           "?provider=" + engine +
@@ -211,7 +192,8 @@ OpenSearch.prototype = {
       selection = this.previousSearchTerm;
 
     if (selection) {
-      menuitem.label = this._formatString("browser.search.prompt", [selection]);
+      menuitem.label = this.bundle.GetStringFromName("browser.search.prompt")
+                           .replace("#1", selection);
       menuitem.value = "" + selection;
       menuitem.hidden = false;
     }
