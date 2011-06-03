@@ -12,7 +12,7 @@
   - for the specific language governing rights and limitations under the
   - License.
   -
-  - The Original Code is Google Calendar Tab.
+  - The Original Code is opensearch.
   -
   - The Initial Developer of the Original Code is
   - Bryan Clark.
@@ -20,6 +20,7 @@
   - the Initial Developer. All Rights Reserved.
   -
   - Contributor(s):
+  - Jim Porter <squibblyflabbetydoo@gmail.com>
   -
   - Alternatively, the contents of this file may be used under the terms of
   - either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,6 +39,10 @@
 <?xml-stylesheet href="chrome://opensearch/skin/overlay.css" type="text/css"?>
 <?xml-stylesheet href="chrome://opensearch/content/websearch-binding.css" type="text/css"?>
 
+<!DOCTYPE overlay [
+  <!ENTITY % opensearchDTD SYSTEM "chrome://opensearch/locale/opensearch.dtd">
+  %opensearchDTD;
+]>
 <overlay id="opensearch-overlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <script type="application/x-javascript" src="chrome://opensearch/content/searchTab.js"/>
@@ -50,16 +55,18 @@
       <hbox flex="1">
         <vbox id="navbar" class="mininav">
           <vbox id="navbuttons">
-            <button class="back" label="&#0171;" disabled="true"/>
-            <button class="forward" label="&#187;" disabled="true"/>
+            <button class="back" label="&backButton.label;"
+                    disabled="true"/>
+            <button class="forward" label="&forwardButton.label;"
+                    disabled="true"/>
           </vbox>
           <radiogroup class="engines" id="radios"></radiogroup>
           <spacer flex="1"/>
-          <button class="check" label="✔"
+          <button class="check" label="&defaultButton.label;"
                   style="-moz-appearance:none;border:none;padding:0;margin:0;"/>
           <panel id="tip" type="arrow" level="parent" fade="slow"
                  class="tip" position="end_before" noautofocus="true">
-            <hbox><description>Set this search engine as the default</description></hbox>
+            <hbox><description>&defaultDescription.label;</description></hbox>
           </panel>
         </vbox>
         <browser id="dummycontentbrowser" type="content-targetable" flex="1"
@@ -72,24 +79,26 @@
 
   <popup id="mailContext">
     <menuitem id="mailContext-browserBack"
-              label="Go Back"
-              oncommand="opensearch.goBack()"/>
+              label="&goBack.label;"
+              accesskey="&goBack.accesskey;"
+              oncommand="opensearch.goBack();"/>
     <menuitem id="mailContext-browserForward"
-              label="Go Forward"
+              label="&goForward.label;"
+              accesskey="&goForward.accesskey;"
               oncommand="opensearch.goForward();"/>
   </popup>
 
   <menupopup id="messageMenuPopup"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="menu_searchTheWeb" insertafter="menu_editMsgAsNew"
-              label="Search the web…"
+              accesskey="&searchWeb.accesskey;"
               oncommand="opensearch.openNewSearchTab('menu', event.target.value)"/>
   </menupopup>
 
   <menupopup id="mailContext"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="mailContext_searchTheWeb" insertafter="mailContext-editAsNew"
-              label="Search the web…"
+              accesskey="&searchWeb.accesskey;"
               oncommand="opensearch.openNewSearchTab('context', event.target.value)"/>
   </menupopup>
 </overlay>
