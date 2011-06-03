@@ -141,7 +141,7 @@ let searchTabType = {
     aTab.engine = aArgs.engine;
     aTab.query = aArgs.query;
 
-    aTab.panel = clone.getElementsByClassName("tip")[0];
+    aTab.tip = clone.getElementsByClassName("tip")[0];
     aTab.check = clone.getElementsByClassName("check")[0];
     aTab.check.hidden = (aTab.engine == opensearch.engine);
 
@@ -164,20 +164,20 @@ let searchTabType = {
       }, true);
     aTab.check.addEventListener("click",
       function () {
-        aTab.panel.hidePopup();
+        aTab.tip.hidePopup();
         opensearch.engine = aTab.engine;
         aTab.check.hidden = true;
         Application.console.log("Check click check? "+aTab.check.hidden);
       }, true);
     aTab.check.addEventListener("mouseover",
       function () {
-        aTab.panel.openPopup(aTab.check);
+        aTab.tip.openPopup(aTab.check);
         aTab.check.focus();
       }, true);
     aTab.check.addEventListener("mouseout",
       function () {
-        Application.console.log(aTab.panel.isContextMenu);
-        aTab.panel.hidePopup();
+        Application.console.log(aTab.tip.isContextMenu);
+        aTab.tip.hidePopup();
       }, true);
 
     aTab.browser.loadURI(aArgs.contentPage);
