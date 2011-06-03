@@ -61,11 +61,8 @@
                            disabled="true"/>
           </vbox>
           <arrowscrollbox id="engines" class="engines" orient="vertical" flex="1"/>
-          <button class="check" label="&defaultButton.label;"/>
-          <panel id="tip" type="arrow" level="parent" fade="slow"
-                 class="tip" position="end_before" noautofocus="true">
-            <hbox><description>&defaultDescription.label;</description></hbox>
-          </panel>
+          <button class="check" label="&defaultButton.label;"
+                  tooltiptext="&defaultDescription.label;"/>
         </vbox>
         <browser id="dummycontentbrowser" type="content-targetable" flex="1"
                  disablehistory="true" autocompletepopup="PopupAutoComplete"
