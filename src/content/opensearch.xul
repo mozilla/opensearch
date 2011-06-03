@@ -77,17 +77,6 @@
     </vbox>
   </tabmail>
 
-  <popup id="mailContext">
-    <menuitem id="mailContext-browserBack"
-              label="&goBack.label;"
-              accesskey="&goBack.accesskey;"
-              oncommand="opensearch.goBack();"/>
-    <menuitem id="mailContext-browserForward"
-              label="&goForward.label;"
-              accesskey="&goForward.accesskey;"
-              oncommand="opensearch.goForward();"/>
-  </popup>
-
   <menupopup id="messageMenuPopup"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="menu_searchTheWeb" insertafter="menu_editMsgAsNew"

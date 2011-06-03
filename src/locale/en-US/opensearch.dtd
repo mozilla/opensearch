@@ -39,10 +39,6 @@
 <!ENTITY forwardButton.label      "&#0187;">
 <!ENTITY defaultButton.label      "&#10003;">
 <!ENTITY defaultDescription.label "Set this search engine as the default">
-<!ENTITY goBack.label             "Go back">
-<!ENTITY goBack.accesskey         "b">
-<!ENTITY goForward.label          "Go forward">
-<!ENTITY goForward.accesskey      "o">
 <!-- LOCALIZATION NOTE(searchWeb.accesskey): this should correspond to a
      character in browser.search.prompt in opensearch.properties -->
 <!ENTITY searchWeb.accesskey      "w">
