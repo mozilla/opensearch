@@ -164,12 +164,16 @@ OpenSearch.prototype = {
   finishLoading: function() {
     try {
       // Load the engines from the service into our radio buttons.
-      let radios = document.getElementById("radios");
+      let engines = document.getElementById("engines");
       for each (let engine in Services.search.getVisibleEngines()) {
-        let radio = radios.appendItem(engine.name, engine.name);
-        radio.setAttribute("src", engine.iconURI.spec);
+        let button = document.createElement("toolbarbutton");
+        button.setAttribute("type", "radio");
+        button.setAttribute("group", "engines");
+        button.setAttribute("image", engine.iconURI.spec);
+        button.setAttribute("tooltiptext", engine.name);
+        engines.appendChild(button);
         if (this.engine == engine.name) {
-          radios.selectedItem(radio);
+          button.setAttribute("checked", true);
         }
       }
     } catch (e) {

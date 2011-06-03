@@ -60,7 +60,7 @@
             <button class="forward" label="&forwardButton.label;"
                     disabled="true"/>
           </vbox>
-          <radiogroup class="engines" id="radios"></radiogroup>
+          <arrowscrollbox id="engines" class="engines" orient="vertical" flex="1"/>
           <spacer flex="1"/>
           <button class="check" label="&defaultButton.label;"
                   style="-moz-appearance:none;border:none;padding:0;margin:0;"/>

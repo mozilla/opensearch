@@ -98,10 +98,10 @@ let searchTabType = {
     aTab.panel.appendChild(clone);
 
     let engines = clone.getElementsByClassName("engines")[0];
-    for (let i=0; i<engines.itemCount; i++) {
-      let item = engines.getItemAtIndex(i);
-      if (aArgs.engine == item.label) {
-        engines.selectedIndex = i;
+    for (let i=0; i<engines.childNodes.length; i++) {
+      let item = engines.childNodes[i];
+      if (aArgs.engine == item.getAttribute("tooltiptext")) {
+        item.checked = true;
         break;
       }
     }
@@ -158,7 +158,8 @@ let searchTabType = {
       }, true);
     clone.getElementsByClassName("engines")[0].addEventListener("command",
       function(e) {
-        aTab.engine = e.target.value;
+        if (e.target.localName != "toolbarbutton") return;
+        aTab.engine = e.target.getAttribute("tooltiptext");
         opensearch.doSearch("browser", aTab.engine, aTab.query, aTab.browser);
         aTab.check.hidden = (aTab.engine == opensearch.engine);
       }, true);
