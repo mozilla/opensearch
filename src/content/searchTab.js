@@ -42,7 +42,7 @@ Cu.import("resource:///modules/errUtils.js");
 
 
 /**
- * A tab to show content pages.
+ * A tab to show search results.
  */
 let searchTabType = {
   name: "searchTab",
@@ -319,8 +319,7 @@ let searchTabType = {
     // Save the function we'll use as listener so we can remove it later.
     aTab.titleListener = onDOMTitleChanged;
     // Add the listener.
-    aTab.browser.addEventListener("DOMTitleChanged",
-                                  aTab.titleListener, true);
+    aTab.browser.addEventListener("DOMTitleChanged", aTab.titleListener, true);
   },
 
   /**
@@ -340,11 +339,12 @@ let searchTabType = {
     // Save the function we'll use as listener so we can remove it later.
     aTab.closeListener = onDOMWindowClose;
     // Add the listener.
-    aTab.browser.addEventListener("DOMWindowClose",
-                                  aTab.closeListener, true);
+    aTab.browser.addEventListener("DOMWindowClose", aTab.closeListener, true);
   },
 
   _setUpBrowserListener: function setUpBrowserListener(aTab) {
+    // Browser navigation (front/back) does not cause onDOMContentLoaded,
+    // so we have to use nsIWebProgressListener
     let progressListener = {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                              Ci.nsISupportsWeakReference,
@@ -366,8 +366,6 @@ let searchTabType = {
       onSecurityChange: function(aWebProgress, aRequest, aState) {},
     };
 
-    // browser navigation (front/back) does not cause onDOMContentLoaded,
-    // so we have to use nsIWebProgressListener
     aTab.browser.addProgressListener(progressListener);
 
     // Create a filter and hook it up to our browser
