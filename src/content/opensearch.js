@@ -300,19 +300,8 @@ OpenSearch.prototype = {
     }
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                         Ci.nsISupportsWeakReference,
-                                         Ci.nsISupports,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports,
                                          Ci.nsIDirectoryServiceProvider2]),
-
-
-  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
-  onLocationChange: function(aProgress, aRequest, aURI) {},
-
-  // For definitions of the remaining functions see related documentation
-  onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
-  onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
-  onSecurityChange: function(aWebProgress, aRequest, aState) { },
 
   goBack: function() {
     try {

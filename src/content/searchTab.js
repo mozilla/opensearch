@@ -345,28 +345,30 @@ let searchTabType = {
   },
 
   _setUpBrowserListener: function setUpBrowserListener(aTab) {
-    let navbar = aTab.browser.parentNode.firstChild;
+    let progressListener = {
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                             Ci.nsISupportsWeakReference,
+                                             Ci.nsISupports]),
 
-    function updateNavButtons() {
-      let backButton = navbar.getElementsByClassName("back")[0];
-      backButton.setAttribute("disabled", ! aTab.browser.canGoBack);
-      let forwardButton = navbar.getElementsByClassName("forward")[0];
-      forwardButton.setAttribute("disabled", ! aTab.browser.canGoForward);
-    };
+      onLocationChange: function(aProgress, aRequest, aURI) {
+        let navbar = aTab.browser.parentNode.firstChild;
 
-    function onDOMContentLoaded(aEvent) {
-      try {
-        opensearch.log("browser", aTab.engine);
-        updateNavButtons();
-      } catch (e) {
-        logException(e);
-      }
+        let backButton = navbar.getElementsByClassName("back")[0];
+        let forwardButton = navbar.getElementsByClassName("forward")[0];
+        backButton.setAttribute("disabled", !aTab.browser.canGoBack);
+        forwardButton.setAttribute("disabled", !aTab.browser.canGoForward);
+      },
+
+      onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
+      onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf,
+                                 curTot, maxTot) {},
+      onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) {},
+      onSecurityChange: function(aWebProgress, aRequest, aState) {},
     };
-    aTab.browser.addEventListener("DOMContentLoaded", onDOMContentLoaded, false);
 
     // browser navigation (front/back) does not cause onDOMContentLoaded,
     // so we have to use nsIWebProgressListener
-    aTab.browser.addProgressListener(opensearch);
+    aTab.browser.addProgressListener(progressListener);
 
     // Create a filter and hook it up to our browser
     aTab.filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]
@@ -375,7 +377,9 @@ let searchTabType = {
     // Wire up a progress listener to the filter for this browser
     aTab.progressListener = new tabProgressListener(aTab, false);
 
-    aTab.filter.addProgressListener(aTab.progressListener, Ci.nsIWebProgress.NOTIFY_ALL);
-    aTab.browser.webProgress.addProgressListener(aTab.filter, Ci.nsIWebProgress.NOTIFY_ALL);
-  }
-}
+    aTab.filter.addProgressListener(aTab.progressListener,
+                                    Ci.nsIWebProgress.NOTIFY_ALL);
+    aTab.browser.webProgress.addProgressListener(aTab.filter,
+                                                 Ci.nsIWebProgress.NOTIFY_ALL);
+  },
+};
