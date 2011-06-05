@@ -130,16 +130,17 @@ let searchTabType = {
     // Default to reload being disabled.
     aTab.reloadEnabled = false;
 
+    aTab.engine = aArgs.engine;
+    aTab.query = aArgs.query;
+
     // Now set up the listeners.
     this._setUpTitleListener(aTab);
     this._setUpCloseWindowListener(aTab);
     this._setUpBrowserListener(aTab);
+    this._setUpEngineListener(aTab);
 
     // Now start loading the content.
     aTab.title = this.loadingTabString;
-
-    aTab.engine = aArgs.engine;
-    aTab.query = aArgs.query;
 
     aTab.check = clone.getElementsByClassName("check")[0];
     aTab.check.hidden = (aTab.engine == opensearch.engine);
@@ -208,14 +209,11 @@ let searchTabType = {
   },
 
   restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
-    // Wait a bit to let us finish loading.
-    setTimeout(function() {
-      aTabmail.openTab("searchTab", {contentPage: aPersistedState.tabURI,
-                                     clickHandler: aPersistedState.clickHandler,
-                                     query: aPersistedState.query,
-                                     engine: aPersistedState.engine,
-                                     background: true});
-    }, 2000);
+    aTabmail.openTab("searchTab", {contentPage: aPersistedState.tabURI,
+                                   clickHandler: aPersistedState.clickHandler,
+                                   query: aPersistedState.query,
+                                   engine: aPersistedState.engine,
+                                   background: true});
   },
 
   supportsCommand: function supportsCommand(aCommand, aTab) {
@@ -379,5 +377,29 @@ let searchTabType = {
                                     Ci.nsIWebProgress.NOTIFY_ALL);
     aTab.browser.webProgress.addProgressListener(aTab.filter,
                                                  Ci.nsIWebProgress.NOTIFY_ALL);
+  },
+
+  _setUpEngineListener: function(aTab) {
+    let engineListener = {
+      addEngines: function() {
+        try {
+          let engines = aTab.panel.getElementsByClassName("engines")[0];
+          for each (let engine in Services.search.getVisibleEngines()) {
+            let button = document.createElement("toolbarbutton");
+            button.setAttribute("type", "radio");
+            button.setAttribute("group", "engines");
+            button.setAttribute("image", engine.iconURI.spec);
+            button.setAttribute("tooltiptext", engine.name);
+            if (aTab.engine == engine.name)
+              button.setAttribute("checked", true);
+            engines.appendChild(button);
+          }
+        } catch (e) {
+          logException(e);
+        }
+      },
+    };
+
+    opensearch.addEngines(engineListener);
   },
 };

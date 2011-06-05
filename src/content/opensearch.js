@@ -93,6 +93,8 @@ function OpenSearch() {
   this.bundle = Cc["@mozilla.org/intl/stringbundle;1"]
                   .getService(Ci.nsIStringBundleService)
                   .createBundle("chrome://opensearch/locale/opensearch.properties");
+
+  this._engineListeners = [];
 }
 
 OpenSearch.prototype = {
@@ -147,7 +149,9 @@ OpenSearch.prototype = {
       Services.dirsvc.registerProvider(this);
 
       // Wait for the service to finish loading the engines.
-      setTimeout(this.finishLoading, 2000);
+      let self = this;
+      this._finishedLoading = false;
+      setTimeout(function() { self.finishLoading(); }, 1000);
 
     } catch (e) {
       logException(e);
@@ -158,23 +162,17 @@ OpenSearch.prototype = {
     Services.obs.removeObserver(this, "autocomplete-did-enter-text", false);
   },
 
+  addEngines: function(listener) {
+    if (this._finishedLoading)
+      listener.addEngines();
+    else
+      this._engineListeners.push(listener);
+  },
+
   finishLoading: function() {
-    try {
-      // Load the engines from the service into our radio buttons.
-      let engines = document.getElementById("engines");
-      for each (let engine in Services.search.getVisibleEngines()) {
-        let button = document.createElement("toolbarbutton");
-        button.setAttribute("type", "radio");
-        button.setAttribute("group", "engines");
-        button.setAttribute("image", engine.iconURI.spec);
-        button.setAttribute("tooltiptext", engine.name);
-        engines.appendChild(button);
-        if (this.engine == engine.name) {
-          button.setAttribute("checked", true);
-        }
-      }
-    } catch (e) {
-      logException(e);
+    this._finishedLoading = true;
+    for (let [,listener] in Iterator(opensearch._engineListeners)) {
+      listener.addEngines();
     }
   },
 
