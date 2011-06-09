@@ -11,9 +11,8 @@
       <constructor>
         <![CDATA[
           this._explanation = document.getAnonymousElementByAttribute(this, "anonid", "explanation");
-          this.bundle = Components.classes["@mozilla.org/intl/stringbundle;1"]
-                                  .getService(Components.interfaces.nsIStringBundleService)
-                                  .createBundle("chrome://opensearch/locale/opensearch.properties");
+          this.bundle = Services.strings
+                                .createBundle("chrome://opensearch/locale/opensearch.properties");
           this._adjustAcItem();
           ]]>
       </constructor>

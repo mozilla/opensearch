@@ -90,9 +90,8 @@ function OpenSearch() {
                                      "@mozilla.org/uriloader/external-protocol-service;1",
                                      "nsIExternalProtocolService");
 
-  this.bundle = Cc["@mozilla.org/intl/stringbundle;1"]
-                  .getService(Ci.nsIStringBundleService)
-                  .createBundle("chrome://opensearch/locale/opensearch.properties");
+  this.bundle = Services.strings
+                        .createBundle("chrome://opensearch/locale/opensearch.properties");
 
   this._engineListeners = [];
 }
