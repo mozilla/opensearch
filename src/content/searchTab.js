@@ -42,7 +42,7 @@ Cu.import("resource:///modules/errUtils.js");
 
 
 /**
- * A tab to show content pages.
+ * A tab to show search results.
  */
 let searchTabType = {
   name: "searchTab",
@@ -98,10 +98,10 @@ let searchTabType = {
     aTab.panel.appendChild(clone);
 
     let engines = clone.getElementsByClassName("engines")[0];
-    for (let i=0; i<engines.itemCount; i++) {
-      let item = engines.getItemAtIndex(i);
-      if (aArgs.engine == item.label) {
-        engines.selectedIndex = i;
+    for (let i=0; i<engines.childNodes.length; i++) {
+      let item = engines.childNodes[i];
+      if (aArgs.engine == item.getAttribute("tooltiptext")) {
+        item.checked = true;
         break;
       }
     }
@@ -130,18 +130,18 @@ let searchTabType = {
     // Default to reload being disabled.
     aTab.reloadEnabled = false;
 
+    aTab.engine = aArgs.engine;
+    aTab.query = aArgs.query;
+
     // Now set up the listeners.
     this._setUpTitleListener(aTab);
     this._setUpCloseWindowListener(aTab);
     this._setUpBrowserListener(aTab);
+    this._setUpEngineListener(aTab);
 
     // Now start loading the content.
     aTab.title = this.loadingTabString;
 
-    aTab.engine = aArgs.engine;
-    aTab.query = aArgs.query;
-
-    aTab.panel = clone.getElementsByClassName("tip")[0];
     aTab.check = clone.getElementsByClassName("check")[0];
     aTab.check.hidden = (aTab.engine == opensearch.engine);
 
@@ -158,26 +158,16 @@ let searchTabType = {
       }, true);
     clone.getElementsByClassName("engines")[0].addEventListener("command",
       function(e) {
-        aTab.engine = e.target.value;
+        if (e.target.localName != "toolbarbutton") return;
+        aTab.engine = e.target.getAttribute("tooltiptext");
         opensearch.doSearch("browser", aTab.engine, aTab.query, aTab.browser);
         aTab.check.hidden = (aTab.engine == opensearch.engine);
       }, true);
     aTab.check.addEventListener("click",
       function () {
-        aTab.panel.hidePopup();
         opensearch.engine = aTab.engine;
         aTab.check.hidden = true;
         Application.console.log("Check click check? "+aTab.check.hidden);
-      }, true);
-    aTab.check.addEventListener("mouseover",
-      function () {
-        aTab.panel.openPopup(aTab.check);
-        aTab.check.focus();
-      }, true);
-    aTab.check.addEventListener("mouseout",
-      function () {
-        Application.console.log(aTab.panel.isContextMenu);
-        aTab.panel.hidePopup();
       }, true);
 
     aTab.browser.loadURI(aArgs.contentPage);
@@ -219,14 +209,11 @@ let searchTabType = {
   },
 
   restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
-    // Wait a bit to let us finish loading.
-    setTimeout(function() {
-      aTabmail.openTab("searchTab", {contentPage: aPersistedState.tabURI,
-                                     clickHandler: aPersistedState.clickHandler,
-                                     query: aPersistedState.query,
-                                     engine: aPersistedState.engine,
-                                     background: true});
-    }, 2000);
+    aTabmail.openTab("searchTab", {contentPage: aPersistedState.tabURI,
+                                   clickHandler: aPersistedState.clickHandler,
+                                   query: aPersistedState.query,
+                                   engine: aPersistedState.engine,
+                                   background: true});
   },
 
   supportsCommand: function supportsCommand(aCommand, aTab) {
@@ -330,8 +317,7 @@ let searchTabType = {
     // Save the function we'll use as listener so we can remove it later.
     aTab.titleListener = onDOMTitleChanged;
     // Add the listener.
-    aTab.browser.addEventListener("DOMTitleChanged",
-                                  aTab.titleListener, true);
+    aTab.browser.addEventListener("DOMTitleChanged", aTab.titleListener, true);
   },
 
   /**
@@ -351,33 +337,34 @@ let searchTabType = {
     // Save the function we'll use as listener so we can remove it later.
     aTab.closeListener = onDOMWindowClose;
     // Add the listener.
-    aTab.browser.addEventListener("DOMWindowClose",
-                                  aTab.closeListener, true);
+    aTab.browser.addEventListener("DOMWindowClose", aTab.closeListener, true);
   },
 
   _setUpBrowserListener: function setUpBrowserListener(aTab) {
-    let navbar = aTab.browser.parentNode.firstChild;
-
-    function updateNavButtons() {
-      let backButton = navbar.getElementsByClassName("back")[0];
-      backButton.setAttribute("disabled", ! aTab.browser.canGoBack);
-      let forwardButton = navbar.getElementsByClassName("forward")[0];
-      forwardButton.setAttribute("disabled", ! aTab.browser.canGoForward);
-    };
-
-    function onDOMContentLoaded(aEvent) {
-      try {
-        opensearch.log("browser", aTab.engine);
-        updateNavButtons();
-      } catch (e) {
-        logException(e);
-      }
-    };
-    aTab.browser.addEventListener("DOMContentLoaded", onDOMContentLoaded, false);
-
-    // browser navigation (front/back) does not cause onDOMContentLoaded,
+    // Browser navigation (front/back) does not cause onDOMContentLoaded,
     // so we have to use nsIWebProgressListener
-    aTab.browser.addProgressListener(opensearch);
+    let progressListener = {
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                             Ci.nsISupportsWeakReference,
+                                             Ci.nsISupports]),
+
+      onLocationChange: function(aProgress, aRequest, aURI) {
+        let navbar = aTab.browser.parentNode.firstChild;
+
+        let backButton = navbar.getElementsByClassName("back")[0];
+        let forwardButton = navbar.getElementsByClassName("forward")[0];
+        backButton.setAttribute("disabled", !aTab.browser.canGoBack);
+        forwardButton.setAttribute("disabled", !aTab.browser.canGoForward);
+      },
+
+      onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
+      onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf,
+                                 curTot, maxTot) {},
+      onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) {},
+      onSecurityChange: function(aWebProgress, aRequest, aState) {},
+    };
+
+    aTab.browser.addProgressListener(progressListener);
 
     // Create a filter and hook it up to our browser
     aTab.filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]
@@ -386,7 +373,33 @@ let searchTabType = {
     // Wire up a progress listener to the filter for this browser
     aTab.progressListener = new tabProgressListener(aTab, false);
 
-    aTab.filter.addProgressListener(aTab.progressListener, Ci.nsIWebProgress.NOTIFY_ALL);
-    aTab.browser.webProgress.addProgressListener(aTab.filter, Ci.nsIWebProgress.NOTIFY_ALL);
-  }
-}
+    aTab.filter.addProgressListener(aTab.progressListener,
+                                    Ci.nsIWebProgress.NOTIFY_ALL);
+    aTab.browser.webProgress.addProgressListener(aTab.filter,
+                                                 Ci.nsIWebProgress.NOTIFY_ALL);
+  },
+
+  _setUpEngineListener: function(aTab) {
+    let engineListener = {
+      addEngines: function() {
+        try {
+          let engines = aTab.panel.getElementsByClassName("engines")[0];
+          for each (let engine in Services.search.getVisibleEngines()) {
+            let button = document.createElement("toolbarbutton");
+            button.setAttribute("type", "radio");
+            button.setAttribute("group", "engines");
+            button.setAttribute("image", engine.iconURI.spec);
+            button.setAttribute("tooltiptext", engine.name);
+            if (aTab.engine == engine.name)
+              button.setAttribute("checked", true);
+            engines.appendChild(button);
+          }
+        } catch (e) {
+          logException(e);
+        }
+      },
+    };
+
+    opensearch.addEngines(engineListener);
+  },
+};

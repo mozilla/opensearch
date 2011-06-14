@@ -11,6 +11,8 @@
       <constructor>
         <![CDATA[
           this._explanation = document.getAnonymousElementByAttribute(this, "anonid", "explanation");
+          this.bundle = Services.strings
+                                .createBundle("chrome://opensearch/locale/opensearch.properties");
           this._adjustAcItem();
           ]]>
       </constructor>
@@ -18,7 +20,8 @@
       <property name="label" readonly="true">
         <getter>
           <![CDATA[
-            return "search web for: " + this.row.item.tag;
+            return this.bundle.GetStringFromName("browser.search.prompt")
+                              .replace("#1", this.row.item.tag);
           ]]>
         </getter>
       </property>
@@ -26,7 +29,9 @@
       <method name="_adjustAcItem">
         <body>
           <![CDATA[
-            this._explanation.value = "Search the web for: " + this.row.term;
+            this._explanation.value =
+              this.bundle.GetStringFromName("browser.search.prompt")
+                         .replace("#1", this.row.term);
           ]]>
         </body>
       </method>
