@@ -6,9 +6,6 @@
   a) same domain
   b) for some, include a few extra domains like login, etc.
 - move xul mods to an overlay somehow
-- propose a patch to specialTabs or tabmail that allows tabs to specify
-  favicons and or favicon-updating functions
-
 */
 
 
@@ -93,14 +90,16 @@ function OpenSearch() {
                                      "@mozilla.org/uriloader/external-protocol-service;1",
                                      "nsIExternalProtocolService");
 
+  this.bundle = Services.strings
+                        .createBundle("chrome://opensearch/locale/opensearch.properties");
+
+  this._engineListeners = [];
 }
 
 OpenSearch.prototype = {
-
   log: function os_log(whereFrom, engine) {
     let url = "https://opensearch-live.mozillamessaging.com/search" +
-          "?provider=" + engine +
-          "&from=" + whereFrom;
+              "?provider=" + engine + "&from=" + whereFrom;
     let req = new XMLHttpRequest();
     req.open('GET', url);
     req.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
@@ -117,7 +116,7 @@ OpenSearch.prototype = {
     var crs = Cc['@mozilla.org/chrome/chrome-registry;1']
                 .getService(Ci.nsIChromeRegistry);
 
-    var nsIURI = Services.io.newURI(decodeURI(chromeURL), 'UTF-8', null);
+    var nsIURI = Services.io.newURI(decodeURI(chromeURL), "UTF-8", null);
     var fileURL = crs.convertChromeURL(nsIURI).spec;
 
     // get the nsILocalFile for the file
@@ -135,7 +134,8 @@ OpenSearch.prototype = {
   onLoad: function(evt) {
     try {
       Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
-      this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"].getService().wrappedJSObject;
+      this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"]
+                              .getService().wrappedJSObject;
 
       // Add us as the second completer.
       this.glodaCompleter.completers.unshift(null);
@@ -148,30 +148,30 @@ OpenSearch.prototype = {
       Services.dirsvc.registerProvider(this);
 
       // Wait for the service to finish loading the engines.
-      setTimeout(this.finishLoading, 2000);
+      let self = this;
+      this._finishedLoading = false;
+      setTimeout(function() { self.finishLoading(); }, 1000);
 
     } catch (e) {
       logException(e);
     }
   },
 
-  onUnLoad: function (evt) {
+  onUnload: function (evt) {
     Services.obs.removeObserver(this, "autocomplete-did-enter-text", false);
   },
 
+  addEngines: function(listener) {
+    if (this._finishedLoading)
+      listener.addEngines();
+    else
+      this._engineListeners.push(listener);
+  },
+
   finishLoading: function() {
-    try {
-      // Load the engines from the service into our radio buttons.
-      let radios = document.getElementById("radios");
-      for each (let engine in Services.search.getVisibleEngines()) {
-        let radio = radios.appendItem(engine.name, engine.name);
-        radio.setAttribute("src", engine.iconURI.spec);
-        if (this.engine == engine.name) {
-          radios.selectedItem(radio);
-        }
-      }
-    } catch (e) {
-      logException(e);
+    this._finishedLoading = true;
+    for (let [,listener] in Iterator(opensearch._engineListeners)) {
+      listener.addEngines();
     }
   },
 
@@ -190,15 +190,15 @@ OpenSearch.prototype = {
       selection = this.previousSearchTerm;
 
     if (selection) {
-      menuitem.label = "Search the web for: " + selection;
+      menuitem.label = this.bundle.GetStringFromName("browser.search.prompt")
+                           .replace("#1", selection);
       menuitem.value = "" + selection;
-      menuitem.disabled = false;
+      menuitem.hidden = false;
     }
     else {
-      // Or just disable the item.
-      menuitem.label = "Search the web…";
+      // Or just hide the item.
       menuitem.value = "";
-      menuitem.disabled = true;
+      menuitem.hidden = true;
     }
 
     if (menuid == "menu_searchTheWeb")
@@ -237,7 +237,8 @@ OpenSearch.prototype = {
       case "Yahoo":
         return ["http://search.yahoo.com", "http://www.yahoo.com"];
       case "Google":
-        return ["http://www.google.com", "http://www.google.ca", "http://login.google.com"];
+        return ["http://www.google.com", "http://www.google.ca",
+                "http://login.google.com"];
       case "Bing":
         return ["http://www.bing.com"];
       case "Wikipedia (en)":
@@ -260,7 +261,7 @@ OpenSearch.prototype = {
     if (aTopic == "autocomplete-did-enter-text") {
       let selectedIndex = aSubject.popup.selectedIndex;
       let curResult = this.glodaCompleter.curResult;
-      if (! curResult)
+      if (!curResult)
         return; // autocomplete didn't even finish.
       let row = curResult.getObjectAt(selectedIndex);
       if (!row || (row.typeForStyle != "websearch"))
@@ -273,12 +274,13 @@ OpenSearch.prototype = {
     try {
       this.log(whereFrom, this.engine);
       this.previousSearchTerm = searchterm;
-      let options = {background: false ,
-                     contentPage: this.getSearchURL(this.engine, searchterm),
-                     query: searchterm,
-                     engine: this.engine,
-                     clickHandler: "opensearch.siteClickHandler(event)"
-                    };
+      let options = {
+        background: false,
+        contentPage: this.getSearchURL(this.engine, searchterm),
+        query: searchterm,
+        engine: this.engine,
+        clickHandler: "opensearch.siteClickHandler(event)",
+      };
       document.getElementById("tabmail").openTab("searchTab", options);
     } catch (e) {
       logException(e);
@@ -294,23 +296,13 @@ OpenSearch.prototype = {
     }
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                         Ci.nsISupportsWeakReference,
-                                         Ci.nsISupports,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports,
                                          Ci.nsIDirectoryServiceProvider2]),
-
-
-  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus) {},
-  onLocationChange: function(aProgress, aRequest, aURI) {},
-
-  // For definitions of the remaining functions see related documentation
-  onProgressChange: function(aWebProgress, aRequest, curSelf, maxSelf, curTot, maxTot) { },
-  onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) { },
-  onSecurityChange: function(aWebProgress, aRequest, aState) { },
 
   goBack: function() {
     try {
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      let browser = document.getElementById("tabmail")
+                            .getBrowserForSelectedTab();
       browser.goBack();
     } catch (e) {
       logException(e);
@@ -319,7 +311,8 @@ OpenSearch.prototype = {
 
   goForward: function() {
     try {
-      let browser = document.getElementById("tabmail").getBrowserForSelectedTab();
+      let browser = document.getElementById("tabmail")
+                            .getBrowserForSelectedTab();
       browser.goForward();
     } catch (e) {
       logException(e);
@@ -338,8 +331,8 @@ OpenSearch.prototype = {
       let uri = makeURI(href);
       if (!this.protocol.isExposedProtocol(uri.scheme) ||
           uri.schemeIs("http") || uri.schemeIs("https")) {
-         //if they're still in the search app, keep 'em.
-         // XXX: we need a smarter way (both for google and others)
+        // If they're still in the search app, keep 'em.
+        // XXX: we need a smarter way (both for google and others)
         let tab = document.getElementById("tabmail").selectedTab;
         domains = this.getURLPrefixesForEngine(tab.engine);
         let inscope = false;
@@ -361,5 +354,9 @@ OpenSearch.prototype = {
 };
 let opensearch = new OpenSearch();
 
-window.addEventListener("load", function(evt) { opensearch.onLoad(evt); }, false);
-window.addEventListener("unload", function(evt) { opensearch.onUnLoad(evt); }, false);
+window.addEventListener("load", function(evt) {
+  opensearch.onLoad(evt);
+}, false);
+window.addEventListener("unload", function(evt) {
+  opensearch.onUnload(evt);
+}, false);
