@@ -185,14 +185,10 @@ OpenSearch.prototype = {
     // Change the label to include the selected text.
     let selection = document.commandDispatcher.focusedWindow.getSelection();
 
-    // Or the previously searched-for text.
-    if (!selection || selection.isCollapsed)
-      selection = this.previousSearchTerm;
-
-    if (selection) {
+    if (!selection.isCollapsed) {
       menuitem.label = this.bundle.GetStringFromName("browser.search.prompt")
-                           .replace("#1", selection);
-      menuitem.value = "" + selection;
+                           .replace("#1", selection.toString());
+      menuitem.value = selection.toString();
       menuitem.hidden = false;
     }
     else {
