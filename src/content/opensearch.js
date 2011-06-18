@@ -271,19 +271,26 @@ OpenSearch.prototype = {
   },
 
   openNewSearchTab: function(whereFrom, searchterm) {
-    try {
-      this.log(whereFrom, this.engine);
-      this.previousSearchTerm = searchterm;
-      let options = {
-        background: false,
-        contentPage: this.getSearchURL(this.engine, searchterm),
-        query: searchterm,
-        engine: this.engine,
-        clickHandler: "opensearch.siteClickHandler(event)",
-      };
-      document.getElementById("tabmail").openTab("searchTab", options);
-    } catch (e) {
-      logException(e);
+    let url = this.getSearchURL(this.engine, searchterm);
+
+    if (Services.prefs.getBoolPref("opensearch.open_externally")) {
+      openLinkExternally(url);
+    }
+    else {
+      try {
+        this.log(whereFrom, this.engine);
+        this.previousSearchTerm = searchterm;
+        let options = {
+          background: false,
+          contentPage: url,
+          query: searchterm,
+          engine: this.engine,
+          clickHandler: "opensearch.siteClickHandler(event)",
+        };
+        document.getElementById("tabmail").openTab("searchTab", options);
+      } catch (e) {
+        logException(e);
+      }
     }
   },
 
