@@ -228,29 +228,17 @@ OpenSearch.prototype = {
     return "";
   },
 
-  getURLPrefixesForEngine: function(aEngine) {
+  isInEngine: function(aEngine, aPreUri, aPostUri) {
     switch (aEngine) {
-      case "Yahoo":
-        return ["http://search.yahoo.com", "http://www.yahoo.com"];
       case "Google":
-        return ["http://www.google.com", "http://www.google.ca",
-                "http://login.google.com"];
-      case "Bing":
-        return ["http://www.bing.com"];
-      case "Wikipedia (en)":
-        return ["http://en.wikipedia.org"];
-      case "Amazon.com":
-        return ["http://www.amazon.com/gp/search/"];
-      case "Creative Commons":
-        return ["http://search.creativecommons.org"];
-      case "Twitter Search":
-        return ["http://search.twitter.com"];
-      case "Answers.com":
-        return ["http://wiki.answers.com/Q"];
-      // todo: eBay.
+        return aPreUri.host == aPostUri.host &&
+               !/^\/url?/.test(aPostUri.path);
+      case "Yahoo":
+        return /search\.yahoo\.com$/.test(aPostUri.host) &&
+               !/^\/r\//.test(aPostUri.path);
     }
-    // By default open everything in the default browser.
-    return [];
+
+    return aPreUri.host == aPostUri.host;
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -331,29 +319,19 @@ OpenSearch.prototype = {
     let href = hRefForClickEvent(aEvent, true);
     if (href) {
       Application.console.log("href = " + href + "\n");
-      let uri = makeURI(href);
-      if (!this.protocol.isExposedProtocol(uri.scheme) ||
-          uri.schemeIs("http") || uri.schemeIs("https")) {
-        // If they're still in the search app, keep 'em.
-        // XXX: we need a smarter way (both for google and others)
-        let tab = document.getElementById("tabmail").selectedTab;
-        domains = this.getURLPrefixesForEngine(tab.engine);
-        let inscope = false;
-        for (let i =0; i < domains.length; i++) {
-          if (uri.spec.indexOf(domains[i]) == 0) {
-            Application.console.log("in scope, as " + domains[i] + " == " +
-                                    uri.host + "\n");
-            inscope = true;
-            break;
-          }
-        }
-        if (! inscope) {
+      let tab = document.getElementById("tabmail").selectedTab;
+      let preUri = tab.browser.currentURI;
+      let postUri = makeURI(href);
+
+      if (!this.protocol.isExposedProtocol(postUri.scheme) ||
+          postUri.schemeIs("http") || postUri.schemeIs("https")) {
+        if (!this.isInEngine(tab.engine, preUri, postUri)) {
           aEvent.preventDefault();
           openLinkExternally(href);
         }
       }
     }
-  }
+  },
 };
 let opensearch = new OpenSearch();
 
