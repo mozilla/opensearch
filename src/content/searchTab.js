@@ -343,7 +343,7 @@ let searchTabType = {
   _setUpBrowserListener: function setUpBrowserListener(aTab) {
     // Browser navigation (front/back) does not cause onDOMContentLoaded,
     // so we have to use nsIWebProgressListener
-    let progressListener = {
+    this.progressListener = {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                              Ci.nsISupportsWeakReference,
                                              Ci.nsISupports]),
@@ -364,7 +364,7 @@ let searchTabType = {
       onSecurityChange: function(aWebProgress, aRequest, aState) {},
     };
 
-    aTab.browser.addProgressListener(progressListener);
+    aTab.browser.addProgressListener(this.progressListener);
 
     // Create a filter and hook it up to our browser
     aTab.filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]
