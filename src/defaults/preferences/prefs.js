@@ -1,5 +1,5 @@
 // https://developer.mozilla.org/en/Localizing_extension_descriptions
-pref("extensions.opensearch@mozillamessaging.com.description", "chrome://getanaccount/locale/opensearch.properties");
+pref("extensions.opensearch@mozillamessaging.com.description", "chrome://opensearch/locale/opensearch.properties");
 
 // pointer to the default engine name
 pref("browser.search.defaultenginename", "chrome://opensearch/locale/opensearch.properties");
