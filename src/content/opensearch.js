@@ -133,6 +133,10 @@ OpenSearch.prototype = {
 
   onLoad: function(evt) {
     try {
+      let tabmail = document.getElementById("tabmail");
+      if (!tabmail)
+        return;
+
       Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"]
                               .getService().wrappedJSObject;
@@ -143,7 +147,7 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers[1] = new WebSearchCompleter();
 
       this.engine = this.engine; // load from prefs
-      document.getElementById("tabmail").registerTabType(searchTabType);
+      tabmail.registerTabType(searchTabType);
 
       Services.dirsvc.registerProvider(this);
 
