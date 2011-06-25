@@ -259,23 +259,38 @@ OpenSearch.prototype = {
 
     if (Services.prefs.getBoolPref("opensearch.open_externally")) {
       openLinkExternally(url);
+      return;
     }
-    else {
-      try {
-        this.log(whereFrom, this.engine);
-        this.previousSearchTerm = searchterm;
-        let options = {
-          background: false,
-          contentPage: url,
-          query: searchterm,
-          engine: this.engine,
-          clickHandler: "opensearch.siteClickHandler(event)",
-        };
-        document.getElementById("tabmail").openTab("searchTab", options);
-      } catch (e) {
-        logException(e);
+
+    this.log(whereFrom, this.engine);
+    this.previousSearchTerm = searchterm;
+    let options = {
+      background: false,
+      contentPage: url,
+      query: searchterm,
+      engine: this.engine,
+      clickHandler: "opensearch.siteClickHandler(event)",
+    };
+
+    let tabmail = document.getElementById("tabmail");
+    if (!tabmail) {
+      // Try opening new tabs in an existing 3pane window
+      let mail3Pane = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+        .getService(Components.interfaces.nsIWindowMediator)
+        .getMostRecentWindow("mail:3pane");
+      if (mail3Pane) {
+        tabmail = mail3Pane.document.getElementById("tabmail");
+        mail3Pane.focus();
       }
     }
+
+    if (tabmail)
+      tabmail.openTab("searchTab", options);
+    else
+      window.openDialog("chrome://messenger/content/", "_blank",
+                        "chrome,dialog=no,all", null,
+                        { tabType: "searchTab",
+                          tabParams: options });
   },
 
   doSearch: function(whereFrom, engine, searchterm, browser) {
