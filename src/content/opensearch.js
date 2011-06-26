@@ -190,8 +190,16 @@ OpenSearch.prototype = {
     let selection = document.commandDispatcher.focusedWindow.getSelection();
 
     if (!selection.isCollapsed) {
-      menuitem.label = this.bundle.GetStringFromName("browser.search.prompt")
-                           .replace("#1", selection.toString());
+      let key = "browser.search.prompt";
+      let selString = selection.toString();
+
+      if (selString.length > 15) {
+        key += ".truncated";
+        selString = selString.slice(0, 15);
+      }
+
+      menuitem.label = this.bundle.GetStringFromName(key)
+                           .replace("#1", selString);
       menuitem.value = selection.toString();
       menuitem.hidden = false;
     }
