@@ -162,6 +162,8 @@ OpenSearch.prototype = {
   },
 
   onUnload: function (evt) {
+    if (!document.getElementById("tabmail"))
+      return;
     Services.obs.removeObserver(this, "autocomplete-did-enter-text", false);
   },
 
