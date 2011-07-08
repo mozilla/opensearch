@@ -74,10 +74,16 @@
 
 .check {
   -moz-appearance: none;
+  list-style-image: url("chrome://opensearch/content/hearts.png");
+  -moz-image-region: rect(0px 16px 16px 0px);
+
   border: none;
   padding: 0;
   margin: 0;
   min-width: 0;
   background: transparent;
-  font-size: large;
+}
+
+.check[checked="true"] {
+  -moz-image-region: rect(0px 32px 16px 16px);
 }
