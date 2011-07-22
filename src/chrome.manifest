@@ -4,3 +4,4 @@ skin      opensearch   classic/1.0   skin/gnomestripe/
 skin      opensearch   classic/1.0   skin/pinstripe/   os=Darwin
 skin      opensearch   classic/1.0   skin/qute/        os=WINNT
 overlay   chrome://messenger/content/messenger.xul  chrome://opensearch/content/opensearch.xul
+overlay   chrome://messenger/content/messageWindow.xul  chrome://opensearch/content/opensearch.xul
