@@ -5,8 +5,7 @@ title: OpenSearch
 OpenSearch
 ==========
 
-Most of the information does not exist, but we're working on that.
+OpenSearch is a plugin to let you [search from within Thunderbird](
+mozillalabs.com/messaging/search-in-thunderbird/).
 
-In the meantime, here are some downloads for use in unit tests.
-
-* [Version 1.1](http://mozilla.github.com/opensearch/opensearch.xpi)
+* [Version 2.0](http://mozilla.github.com/opensearch/opensearch.xpi)
