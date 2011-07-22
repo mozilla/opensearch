@@ -48,6 +48,8 @@ let searchTabType = {
   name: "searchTab",
   perTabPanel: "vbox",
   lastBrowserId: 0,
+  bundle: Services.strings.createBundle("chrome://opensearch/locale/opensearch.properties"),
+
   get loadingTabString() {
     delete this.loadingTabString;
     return this.loadingTabString = document.getElementById("bundle_messenger")
@@ -143,31 +145,32 @@ let searchTabType = {
     aTab.title = this.loadingTabString;
 
     aTab.check = clone.getElementsByClassName("check")[0];
-    aTab.check.hidden = (aTab.engine == opensearch.engine);
+    this._setDefaultButtonState(aTab, aTab.engine == opensearch.engine);
 
     // Set up onclick/oncommand listeners.
+    let self = this;
     clone.getElementsByClassName("back")[0].addEventListener("click",
       function (e) {
         aTab.browser.goBack();
-        aTab.check.hidden = (aTab.engine == opensearch.engine);
+        self._setDefaultButtonState(aTab, aTab.engine == opensearch.engine);
       }, true);
     clone.getElementsByClassName("forward")[0].addEventListener("click",
       function () {
         aTab.browser.goForward();
-        aTab.check.hidden = (aTab.engine == opensearch.engine);
+        self._setDefaultButtonState(aTab, aTab.engine == opensearch.engine);
       }, true);
     clone.getElementsByClassName("engines")[0].addEventListener("command",
       function(e) {
         if (e.target.localName != "toolbarbutton") return;
         aTab.engine = e.target.getAttribute("tooltiptext");
         opensearch.doSearch("browser", aTab.engine, aTab.query, aTab.browser);
-        aTab.check.hidden = (aTab.engine == opensearch.engine);
+        self._setDefaultButtonState(aTab, aTab.engine == opensearch.engine);
       }, true);
     aTab.check.addEventListener("click",
       function () {
         opensearch.engine = aTab.engine;
-        aTab.check.hidden = true;
-        Application.console.log("Check click check? "+aTab.check.hidden);
+        self._setDefaultButtonState(aTab, true);
+        Application.console.log("Check click check? "+aTab.check.checked);
       }, true);
 
     aTab.browser.loadURI(aArgs.contentPage);
@@ -191,7 +194,6 @@ let searchTabType = {
 
   showTab: function onShowTab(aTab) {
     aTab.browser.setAttribute("type", "content-primary");
-    //aTab.check.hidden = (aTab.engine == opensearch.engine);
   },
 
   persistTab: function onPersistTab(aTab) {
@@ -320,6 +322,12 @@ let searchTabType = {
     aTab.browser.addEventListener("DOMTitleChanged", aTab.titleListener, true);
   },
 
+  _setDefaultButtonState: function setDefaultButtonState(aTab, isDefault) {
+    aTab.check.checked = isDefault;
+    let key = "browser.search." + (isDefault ? "isDefault" : "setDefault");
+    aTab.check.tooltipText = this.bundle.GetStringFromName(key);
+  },
+
   /**
    * Internal function used to set up the close window listener on a content
    * tab.
@@ -343,7 +351,7 @@ let searchTabType = {
   _setUpBrowserListener: function setUpBrowserListener(aTab) {
     // Browser navigation (front/back) does not cause onDOMContentLoaded,
     // so we have to use nsIWebProgressListener
-    let progressListener = {
+    this.progressListener = {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                              Ci.nsISupportsWeakReference,
                                              Ci.nsISupports]),
@@ -364,7 +372,7 @@ let searchTabType = {
       onSecurityChange: function(aWebProgress, aRequest, aState) {},
     };
 
-    aTab.browser.addProgressListener(progressListener);
+    aTab.browser.addProgressListener(this.progressListener);
 
     // Create a filter and hook it up to our browser
     aTab.filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]

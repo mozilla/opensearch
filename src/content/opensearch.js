@@ -133,6 +133,10 @@ OpenSearch.prototype = {
 
   onLoad: function(evt) {
     try {
+      let tabmail = document.getElementById("tabmail");
+      if (!tabmail)
+        return;
+
       Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
       this.glodaCompleter = Cc["@mozilla.org/autocomplete/search;1?name=gloda"]
                               .getService().wrappedJSObject;
@@ -143,7 +147,7 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers[1] = new WebSearchCompleter();
 
       this.engine = this.engine; // load from prefs
-      document.getElementById("tabmail").registerTabType(searchTabType);
+      tabmail.registerTabType(searchTabType);
 
       Services.dirsvc.registerProvider(this);
 
@@ -158,6 +162,8 @@ OpenSearch.prototype = {
   },
 
   onUnload: function (evt) {
+    if (!document.getElementById("tabmail"))
+      return;
     Services.obs.removeObserver(this, "autocomplete-did-enter-text", false);
   },
 
@@ -185,14 +191,18 @@ OpenSearch.prototype = {
     // Change the label to include the selected text.
     let selection = document.commandDispatcher.focusedWindow.getSelection();
 
-    // Or the previously searched-for text.
-    if (!selection || selection.isCollapsed)
-      selection = this.previousSearchTerm;
+    if (!selection.isCollapsed) {
+      let key = "browser.search.prompt";
+      let selString = selection.toString();
 
-    if (selection) {
-      menuitem.label = this.bundle.GetStringFromName("browser.search.prompt")
-                           .replace("#1", selection);
-      menuitem.value = "" + selection;
+      if (selString.length > 15) {
+        key += ".truncated";
+        selString = selString.slice(0, 15);
+      }
+
+      menuitem.label = this.bundle.GetStringFromName(key)
+                           .replace("#1", selString);
+      menuitem.value = selection.toString();
       menuitem.hidden = false;
     }
     else {
@@ -232,29 +242,17 @@ OpenSearch.prototype = {
     return "";
   },
 
-  getURLPrefixesForEngine: function(aEngine) {
+  isInEngine: function(aEngine, aPreUri, aPostUri) {
     switch (aEngine) {
-      case "Yahoo":
-        return ["http://search.yahoo.com", "http://www.yahoo.com"];
       case "Google":
-        return ["http://www.google.com", "http://www.google.ca",
-                "http://login.google.com"];
-      case "Bing":
-        return ["http://www.bing.com"];
-      case "Wikipedia (en)":
-        return ["http://en.wikipedia.org"];
-      case "Amazon.com":
-        return ["http://www.amazon.com/gp/search/"];
-      case "Creative Commons":
-        return ["http://search.creativecommons.org"];
-      case "Twitter Search":
-        return ["http://search.twitter.com"];
-      case "Answers.com":
-        return ["http://wiki.answers.com/Q"];
-      // todo: eBay.
+        return aPreUri.host == aPostUri.host &&
+               !/^\/url?/.test(aPostUri.path);
+      case "Yahoo":
+        return /search\.yahoo\.com$/.test(aPostUri.host) &&
+               !/^\/r\//.test(aPostUri.path);
     }
-    // By default open everything in the default browser.
-    return [];
+
+    return aPreUri.host == aPostUri.host;
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -271,20 +269,42 @@ OpenSearch.prototype = {
   },
 
   openNewSearchTab: function(whereFrom, searchterm) {
-    try {
-      this.log(whereFrom, this.engine);
-      this.previousSearchTerm = searchterm;
-      let options = {
-        background: false,
-        contentPage: this.getSearchURL(this.engine, searchterm),
-        query: searchterm,
-        engine: this.engine,
-        clickHandler: "opensearch.siteClickHandler(event)",
-      };
-      document.getElementById("tabmail").openTab("searchTab", options);
-    } catch (e) {
-      logException(e);
+    let url = this.getSearchURL(this.engine, searchterm);
+
+    if (Services.prefs.getBoolPref("opensearch.open_externally")) {
+      openLinkExternally(url);
+      return;
     }
+
+    this.log(whereFrom, this.engine);
+    this.previousSearchTerm = searchterm;
+    let options = {
+      background: false,
+      contentPage: url,
+      query: searchterm,
+      engine: this.engine,
+      clickHandler: "opensearch.siteClickHandler(event)",
+    };
+
+    let tabmail = document.getElementById("tabmail");
+    if (!tabmail) {
+      // Try opening new tabs in an existing 3pane window
+      let mail3Pane = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+        .getService(Components.interfaces.nsIWindowMediator)
+        .getMostRecentWindow("mail:3pane");
+      if (mail3Pane) {
+        tabmail = mail3Pane.document.getElementById("tabmail");
+        mail3Pane.focus();
+      }
+    }
+
+    if (tabmail)
+      tabmail.openTab("searchTab", options);
+    else
+      window.openDialog("chrome://messenger/content/", "_blank",
+                        "chrome,dialog=no,all", null,
+                        { tabType: "searchTab",
+                          tabParams: options });
   },
 
   doSearch: function(whereFrom, engine, searchterm, browser) {
@@ -328,29 +348,19 @@ OpenSearch.prototype = {
     let href = hRefForClickEvent(aEvent, true);
     if (href) {
       Application.console.log("href = " + href + "\n");
-      let uri = makeURI(href);
-      if (!this.protocol.isExposedProtocol(uri.scheme) ||
-          uri.schemeIs("http") || uri.schemeIs("https")) {
-        // If they're still in the search app, keep 'em.
-        // XXX: we need a smarter way (both for google and others)
-        let tab = document.getElementById("tabmail").selectedTab;
-        domains = this.getURLPrefixesForEngine(tab.engine);
-        let inscope = false;
-        for (let i =0; i < domains.length; i++) {
-          if (uri.spec.indexOf(domains[i]) == 0) {
-            Application.console.log("in scope, as " + domains[i] + " == " +
-                                    uri.host + "\n");
-            inscope = true;
-            break;
-          }
-        }
-        if (! inscope) {
+      let tab = document.getElementById("tabmail").selectedTab;
+      let preUri = tab.browser.currentURI;
+      let postUri = makeURI(href);
+
+      if (!this.protocol.isExposedProtocol(postUri.scheme) ||
+          postUri.schemeIs("http") || postUri.schemeIs("https")) {
+        if (!this.isInEngine(tab.engine, preUri, postUri)) {
           aEvent.preventDefault();
           openLinkExternally(href);
         }
       }
     }
-  }
+  },
 };
 let opensearch = new OpenSearch();
 
