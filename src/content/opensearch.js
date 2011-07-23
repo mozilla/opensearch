@@ -46,7 +46,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 // Defined in searchTab.js
-// const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+// var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 // From mozilla/toolkit/components/search/nsSearchService.js
 const NS_APP_SEARCH_DIR_LIST = "SrchPluginsDL";
