@@ -12,7 +12,7 @@
   - for the specific language governing rights and limitations under the
   - License.
   -
-  - The Original Code is Google Calendar Tab.
+  - The Original Code is opensearch.
   -
   - The Initial Developer of the Original Code is
   - Bryan Clark.
@@ -20,6 +20,7 @@
   - the Initial Developer. All Rights Reserved.
   -
   - Contributor(s):
+  - Jim Porter <squibblyflabbetydoo@gmail.com>
   -
   - Alternatively, the contents of this file may be used under the terms of
   - either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,59 +36,52 @@
   -
   - ***** END LICENSE BLOCK ***** -->
 
-<?xml-stylesheet href="chrome://opensearch/skin/overlay.css" type="text/css"?>
+<?xml-stylesheet href="chrome://opensearch/skin/opensearch.css" type="text/css"?>
 <?xml-stylesheet href="chrome://opensearch/content/websearch-binding.css" type="text/css"?>
 
+<!DOCTYPE overlay [
+  <!ENTITY % opensearchDTD SYSTEM "chrome://opensearch/locale/opensearch.dtd">
+  %opensearchDTD;
+]>
 <overlay id="opensearch-overlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script type="application/x-javascript" src="chrome://opensearch/content/searchTab.js"/>
   <script type="application/x-javascript" src="chrome://opensearch/content/opensearch.js"/>
 
   <!--We want to enable browser history, and at least the Go menu-->
   <browser id="dummycontentbrowser" type="content" disablehistory="false"/>
   <tabmail id="tabmail">
-    <vbox id="siteTab" collapsed="true">
-      <vbox flex="1">
-        <notificationbox flex="1">
-          <hbox id="navbar" class="mininav">
-            <button class="back" label="&#0171;"/>
-            <button class="forward" label="&#187;"/>
-            <textbox class="q" id="q" flex="1" crop="center"
-                     type="search" searchbutton="true"/>
-            <menulist id="engines" class="menulist">
-              <menupopup></menupopup>
-            </menulist>
-            <button class="go" label="Search"
-                    oncommand="opensearch.setSearchTerm(document.getElementById('q').value)"/>
-          </hbox>
-          <browser id="dummycontentbrowser" type="content-targetable" flex="1"
-                   disablehistory="true" autocompletepopup="PopupAutoComplete"
-                   context="mailContext"/>
-        </notificationbox>
+    <vbox id="searchTab" collapsed="true">
+      <hbox flex="1">
+        <vbox id="navbar" class="mininav">
+          <vbox id="navbuttons">
+            <toolbarbutton class="back" label="&backButton.label;"
+                           disabled="true"/>
+            <toolbarbutton class="forward" label="&forwardButton.label;"
+                           disabled="true"/>
+          </vbox>
+          <arrowscrollbox id="engines" class="engines" orient="vertical" flex="1"/>
+          <button class="check" type="checkbox"/>
+        </vbox>
+        <browser id="dummycontentbrowser" type="content-targetable" flex="1"
+                 disablehistory="true" autocompletepopup="PopupAutoComplete"
+                 context="mailContext"/>
         <findbar browserid="dummycontentbrowser"/>
-      </vbox>
+      </hbox>
     </vbox>
   </tabmail>
-
-  <popup id="mailContext">
-    <menuitem id="mailContext-browserBack"
-              label="Go Back"
-              oncommand="opensearch.goBack()"/>
-    <menuitem id="mailContext-browserForward"
-              label="Go Forward"
-              oncommand="getBrowser().goForward();"/>
-  </popup>
 
   <menupopup id="messageMenuPopup"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="menu_searchTheWeb" insertafter="menu_editMsgAsNew"
-              label="Search the web…"
-              oncommand="opensearch.doSearch('menu', event.target.value)"/>
+              accesskey="&searchWeb.accesskey;"
+              oncommand="opensearch.openNewSearchTab('menu', event.target.value)"/>
   </menupopup>
 
   <menupopup id="mailContext"
              onpopupshowing="opensearch.initContextPopup(event)">
     <menuitem id="mailContext_searchTheWeb" insertafter="mailContext-editAsNew"
-              label="Search the web…"
-              oncommand="opensearch.doSearch('context', event.target.value)"/>
+              accesskey="&searchWeb.accesskey;"
+              oncommand="opensearch.openNewSearchTab('context', event.target.value)"/>
   </menupopup>
 </overlay>
