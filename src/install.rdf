@@ -4,15 +4,18 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>opensearch@mozillamessaging.com</em:id>
     <em:name>OpenSearch</em:name>
-    <em:version>1.1</em:version>
+    <em:version>2.0</em:version>
     <em:creator>David Ascher</em:creator>
     <em:contributor>Blake Winton</em:contributor>
     <em:contributor>Bryan Clark</em:contributor>
+    <em:contributor>Jim Porter</em:contributor>
+    <em:unpack>true</em:unpack>
+    <em:type>2</em:type>
     <em:targetApplication>
       <Description>
         <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id> <!-- thunderbird -->
         <em:minVersion>3.3a2</em:minVersion>
-        <em:maxVersion>9.0</em:maxVersion>
+        <em:maxVersion>8.0a1</em:maxVersion>
       </Description>
     </em:targetApplication>
   </Description>

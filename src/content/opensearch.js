@@ -46,7 +46,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 // Defined in searchTab.js
-// const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+// var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 // From mozilla/toolkit/components/search/nsSearchService.js
 const NS_APP_SEARCH_DIR_LIST = "SrchPluginsDL";
@@ -146,10 +146,10 @@ OpenSearch.prototype = {
       this.glodaCompleter.completers[0] = this.glodaCompleter.completers[1];
       this.glodaCompleter.completers[1] = new WebSearchCompleter();
 
+      Services.dirsvc.registerProvider(this);
+
       this.engine = this.engine; // load from prefs
       tabmail.registerTabType(searchTabType);
-
-      Services.dirsvc.registerProvider(this);
 
       // Wait for the service to finish loading the engines.
       let self = this;
@@ -222,13 +222,18 @@ OpenSearch.prototype = {
   },
 
   get engine() {
+    let rv = null;
     try {
-      return Services.prefs.getCharPref("opensearch.engine");
+      rv = Services.prefs.getCharPref("opensearch.engine");
     } catch (e) {
       if (Services.search.defaultEngine != null)
-        return Services.search.defaultEngine.name;
-      return "Google";
+        rv = Services.search.defaultEngine.name;
+      if (rv == null)
+        this.bundle.GetStringFromName("browser.search.defaultenginename");
+      if (rv == null)
+        rv = "Bing";
     }
+    return rv;
   },
 
   getSearchURL: function(aEngine, searchterm) {
