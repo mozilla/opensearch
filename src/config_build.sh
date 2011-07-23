@@ -4,6 +4,6 @@ APP_NAME=opensearch
 CHROME_PROVIDERS="content locale skin"
 CLEAN_UP=1
 ROOT_FILES="readme.txt"
-ROOT_DIRS=
+ROOT_DIRS="defaults"
 BEFORE_BUILD=
 AFTER_BUILD="mv $APP_NAME.xpi ../release/"
