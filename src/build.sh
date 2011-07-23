@@ -65,15 +65,20 @@ $BEFORE_BUILD
 mkdir -p -v $TMP_DIR/chrome
 
 # generate the JAR file, excluding CVS and temporary files
-JAR_FILE=$TMP_DIR/chrome/$APP_NAME.jar
-echo "Generating $JAR_FILE..."
-for CHROME_SUBDIR in $CHROME_PROVIDERS; do
-  find $CHROME_SUBDIR -path '*CVS*' -prune -o -type f -print | grep -v \~ >> files
-done
+if [ $JAR = 0 ]; then
+  echo "Generating chrome..."
+  for CHROME_SUBDIR in $CHROME_PROVIDERS; do
+    cp -Rpv $CHROME_SUBDIR $TMP_DIR
+  done
+else
+  JAR_FILE=$TMP_DIR/chrome/$APP_NAME.jar
+  echo "Generating $JAR_FILE..."
+  for CHROME_SUBDIR in $CHROME_PROVIDERS; do
+    find $CHROME_SUBDIR -path '*CVS*' -prune -o -type f -print | grep -v \~ >> files
+  done
 
-zip -0 -r $JAR_FILE `cat files`
-# The following statement should be used instead if you don't wish to use the JAR file
-#cp -pv `cat files` $TMP_DIR/chrome
+  zip -0 -r $JAR_FILE `cat files`
+fi
 
 # prepare components and defaults
 echo "Copying various files to $TMP_DIR folder..."
@@ -94,7 +99,8 @@ done
 
 cd $TMP_DIR
 
-if [ -f "chrome.manifest" ]; then
+
+if [ $JAR != 0 && -f "chrome.manifest" ]; then
   echo "Preprocessing chrome.manifest..."
   # You think this is scary?
   #s/^(content\s+\S*\s+)(\S*\/)$/\1jar:chrome\/$APP_NAME\.jar!\/\2/
